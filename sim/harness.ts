@@ -55,22 +55,43 @@ async function pace() {
   if (wait > 0) await sleep(wait);
 }
 
-async function api(path: string, init?: RequestInit, timeoutMs = 90000): Promise<any> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${API}${path}`, { ...init, signal: ctrl.signal, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(`${init?.method ?? "GET"} ${path} failed ${res.status}: ${json.error ?? "unknown"}`);
-    return json;
-  } finally {
-    clearTimeout(timer);
+async function api(path: string, init?: RequestInit, timeoutMs = 570000): Promise<any> {
+  const method = init?.method ?? "GET";
+  const maxAttempts = method === "POST" ? 1 : 4; // POSTs are never blindly retried (duplicate risk); the harness resumes from state instead
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${API}${path}`, { ...init, signal: ctrl.signal, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(`${method} ${path} failed ${res.status}: ${json.error ?? "unknown"}`);
+      return json;
+    } catch (err) {
+      lastErr = err;
+      if (err instanceof Error && err.message.includes("failed 4")) throw err; // real HTTP errors are not retried either
+      if (attempt < maxAttempts - 1) await sleep(5000);
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  throw lastErr;
 }
 async function post(path: string, body?: unknown): Promise<any> {
   await pace();
   lastPostAt = Date.now();
   return api(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
+}
+
+async function getHouseholdReliable(id: string): Promise<any> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      return await api(`/api/households/${id}`);
+    } catch (err) {
+      if (attempt === 5) throw err;
+      await sleep(15000);
+    }
+  }
 }
 
 function loadState(): State {
@@ -93,8 +114,10 @@ function saveVault(wallets: WalletRec[]) {
 async function waitForMemory(householdId: string, match: (m: { kind: string; text: string }) => boolean, label: string, timeoutMs = 240000): Promise<void> {
   const start = Date.now();
   for (;;) {
-    const data = await api(`/api/households/${householdId}/memories`);
-    if ((data.memories ?? []).some(match)) return;
+    // A 404 here just means a cold instance could not hydrate yet, because
+    // recall indexing lags a fresh write. That is a "not yet", not an error.
+    const data = await api(`/api/households/${householdId}/memories`).catch(() => null);
+    if (data && (data.memories ?? []).some(match)) return;
     if (Date.now() - start > timeoutMs) throw new Error(`Timed out waiting for memory: ${label}`);
     await sleep(9000);
   }
@@ -133,22 +156,86 @@ async function setup() {
         saveVault(vault);
       }
     }
-    if (state.households.some((h) => h.index === i)) { console.log(`household ${i} exists, skipping`); continue; }
+    const existing = state.households.find((h) => h.index === i);
     const walletOf = (name: string) => vault.find((w) => w.household === i && w.member === name)!;
-    const created = await post("/api/households", {
-      name: persona.householdName, currency: "NGN",
-      creatorName: persona.members[0].name, creatorSuiAddress: walletOf(persona.members[0].name).address,
-    });
-    const householdId: string = created.household.id;
-    const members = [{ name: persona.members[0].name, id: created.member.id as string, address: walletOf(persona.members[0].name).address }];
-    for (const m of persona.members.slice(1)) {
-      const added = await post(`/api/households/${householdId}/members`, { name: m.name, suiAddress: walletOf(m.name).address });
-      members.push({ name: m.name, id: added.member.id as string, address: walletOf(m.name).address });
+    let hh = existing;
+    if (!hh) {
+      // The egress proxy occasionally drops a connection mid response. One
+      // retry after a pause; if the first attempt had in fact landed, the
+      // duplicate is a labelled Simulated household that is never used and
+      // is disclosed in the report.
+      const createBody = {
+        name: persona.householdName, currency: "NGN",
+        creatorName: persona.members[0].name, creatorSuiAddress: walletOf(persona.members[0].name).address,
+      };
+      let created: any;
+      try {
+        created = await post("/api/households", createBody);
+      } catch {
+        console.log(`household ${i}: create response lost, retrying once after 30s`);
+        await sleep(30000);
+        created = await post("/api/households", createBody);
+      }
+      hh = { index: i, id: created.household.id as string, name: persona.householdName,
+             members: [{ name: persona.members[0].name, id: created.member.id as string, address: walletOf(persona.members[0].name).address }] };
+      state.households.push(hh);
+      saveState(state);
+      console.log(`household ${i} created: ${hh.id}`);
     }
-    await api(`/api/households/${householdId}`, { method: "PATCH", body: JSON.stringify({ displayPerUsdcMinor: RATE_MINOR }) });
-    state.households.push({ index: i, id: householdId, name: persona.householdName, members });
-    saveState(state);
-    console.log(`household ${i} created: ${householdId} (${members.length} members)`);
+    // Members: add any that are missing, then wait until every member
+    // memory is actually visible on Walrus. Serverless instances hydrate
+    // from memory, so a member is only real once its memory lands.
+    // Adopt members that already exist server side (a previous run may have
+    // added them before its response was lost).
+    const current = await getHouseholdReliable(hh.id).catch(() => null);
+    if (current?.members) {
+      for (const sm of current.members as any[]) {
+        if (!hh.members.some((x) => x.id === sm.id)) {
+          hh.members.push({ name: sm.name, id: sm.id, address: sm.suiAddress });
+        }
+      }
+      saveState(state);
+    }
+    for (const m of persona.members.slice(1)) {
+      if (hh.members.some((x) => x.name === m.name)) continue;
+      // Member adds get up to 3 attempts. Between attempts we re-read the
+      // household: if the add actually landed despite a lost response, we
+      // adopt that member instead of adding a duplicate.
+      for (let attempt = 0; attempt < 3 && !hh.members.some((x) => x.name === m.name); attempt++) {
+        try {
+          const added = await post(`/api/households/${hh.id}/members`, { name: m.name, suiAddress: walletOf(m.name).address });
+          hh.members.push({ name: m.name, id: added.member.id as string, address: walletOf(m.name).address });
+          saveState(state);
+          console.log(`household ${i}: member ${m.name} added`);
+        } catch (err) {
+          console.log(`household ${i}: member ${m.name} add attempt ${attempt + 1} failed (${err instanceof Error ? err.message : err}), checking before retry`);
+          await sleep(15000);
+          const current = await getHouseholdReliable(hh.id).catch(() => null);
+          const found = (current?.members ?? []).find((sm: any) => sm.name === m.name);
+          if (found) {
+            hh.members.push({ name: m.name, id: found.id as string, address: walletOf(m.name).address });
+            saveState(state);
+            console.log(`household ${i}: member ${m.name} had landed, adopted`);
+          }
+        }
+      }
+      if (!hh.members.some((x) => x.name === m.name)) throw new Error(`Could not add member ${m.name} to household ${i}`);
+    }
+    for (const m of hh.members) {
+      await waitForMemory(hh.id, (mem) => mem.kind === "member" && mem.text.includes(`member=${m.id}`), `member ${m.name} of household ${i}`);
+    }
+    // FX rate: retry while cold instances are still hydrating.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await api(`/api/households/${hh.id}`, { method: "PATCH", body: JSON.stringify({ displayPerUsdcMinor: RATE_MINOR }) });
+        break;
+      } catch (err) {
+        if (attempt >= 5) throw err;
+        console.log(`household ${i}: rate patch retry ${attempt + 1} (hydration lag)`);
+        await sleep(20000);
+      }
+    }
+    console.log(`household ${i} ready: ${hh.id} (${hh.members.length} members, memories visible)`);
   }
   console.log("setup complete");
 }
@@ -168,13 +255,30 @@ async function cycle(hhIndex: number, dayIndex: number) {
     const key = `${hhIndex}:${dayIndex}:${i}`;
     if (state.actions.some((a) => a.key === key)) { console.log(`skip ${key} (done)`); continue; }
     const line = lines[i];
-    const posted = await post(`/api/households/${hh.id}/expenses`, { text: line });
-    const expenseId: string = posted.expense.id;
-    const category: string = posted.expense.category;
+    let expenseId: string;
+    let category: string;
+    try {
+      const posted = await post(`/api/households/${hh.id}/expenses`, { text: line });
+      expenseId = posted.expense.id;
+      category = posted.expense.category;
+    } catch (err) {
+      // Responses are held open until the memory write chain finishes and
+      // can be dropped by the network after the expense has in fact been
+      // created. Recover by finding the expense in the household by its
+      // exact raw line; only a genuinely missing expense is an error.
+      console.log(`${key} expense response lost (${err instanceof Error ? err.message : err}), recovering from household state`);
+      await sleep(20000);
+      const data = await getHouseholdReliable(hh.id);
+      const found = (data.expenses ?? []).find((e: any) => e.rawText === line && e.status === "proposed");
+      if (!found) throw err;
+      expenseId = found.id;
+      category = found.category;
+      console.log(`${key} recovered expense ${expenseId}`);
+    }
     console.log(`${key} logged "${line}" [${category}], waiting for its memory…`);
     await waitForMemory(hh.id, (m) => m.kind === "expense" && m.text.includes(`expense=${expenseId}`), `expense ${expenseId}`);
 
-    const data = await api(`/api/households/${hh.id}`);
+    const data = await getHouseholdReliable(hh.id);
     const expense = (data.expenses ?? []).find((e: any) => e.id === expenseId);
     if (!expense) throw new Error(`Expense ${expenseId} not visible after its memory landed`);
     const amount: number = expense.amountMinor;
@@ -195,7 +299,9 @@ async function cycle(hhIndex: number, dayIndex: number) {
       action = "correct";
       body = { action, shares: sharesFromWeights(amount, jitterWeights(hidden, names), memberIdByName) };
     }
-    await post(`/api/households/${hh.id}/expenses/${expenseId}/decision`, body);
+    await post(`/api/households/${hh.id}/expenses/${expenseId}/decision`, body).catch((err) => {
+      console.log(`${key} decision response lost (${err instanceof Error ? err.message : err}), verifying via memory instead`);
+    });
     await waitForMemory(hh.id, (m) => (m.kind === "acceptance" || m.kind === "correction") && m.text.includes(`expense=${expenseId}`), `decision ${expenseId}`);
     state.actions.push({ key, household: hhIndex, day: dayIndex, line, category, action, deviation: Math.round(deviation * 1000) / 1000 });
     saveState(state);
@@ -308,10 +414,13 @@ async function report() {
   console.log(`report written: ${totalMemories} memories across ${state.households.length} simulated households`);
 }
 
-const [cmd, a, b] = process.argv.slice(2);
-if (cmd === "setup") await setup();
-else if (cmd === "cycle") await cycle(Number(a), Number(b));
-else if (cmd === "settle-prep") await settlePrep();
-else if (cmd === "settle-send") await settleSend();
-else if (cmd === "report") await report();
-else console.log("usage: setup | cycle <hh> <day> | settle-prep | settle-send | report");
+async function main() {
+  const [cmd, a, b] = process.argv.slice(2);
+  if (cmd === "setup") await setup();
+  else if (cmd === "cycle") await cycle(Number(a), Number(b));
+  else if (cmd === "settle-prep") await settlePrep();
+  else if (cmd === "settle-send") await settleSend();
+  else if (cmd === "report") await report();
+  else console.log("usage: setup | cycle <hh> <day> | settle-prep | settle-send | report");
+}
+main().catch((err) => { console.error("HARNESS ERROR:", err instanceof Error ? err.message : err); process.exit(1); });

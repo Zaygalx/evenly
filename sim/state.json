@@ -1,0 +1,84 @@
+{
+  "households": [
+    {
+      "index": 0,
+      "id": "113aa5c1-53e2-4834-855e-243aa7d25d58",
+      "name": "Simulated Household 1, Night Owls",
+      "members": [
+        {
+          "name": "Adaeze",
+          "id": "16e5b20c-bf53-44db-8aab-ede2b708fdbf",
+          "address": "0x44f22dc53d8cf3928fbaf6cdaaaf7d04cd32eb3a43cd9edefd29e4c46e760e5d"
+        },
+        {
+          "name": "Chidi",
+          "id": "701be813-fef5-479c-a46a-f29ac7f41184",
+          "address": "0xe7469ca9f7266a7c12c6000c367601f8c3e6b60911eaa36b8201b9dc4fcd7bac"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "id": "defa9273-3a47-4a52-8dd6-4d68f2f77a5d",
+      "name": "Simulated Household 2, Marble Arch Flat",
+      "members": [
+        {
+          "name": "Funmi",
+          "id": "0b54d045-219e-4071-b9d8-d8374ee3ea1f",
+          "address": "0x54d1add48e29c21afa37a429e65ecbd0a17b1e5ff613b349aa7dd6812e3c7877"
+        },
+        {
+          "name": "Sara",
+          "id": "d8cb732f-c961-4abb-9188-422d0bfda70b",
+          "address": "0xc5ace9ba862f3d8311c2842bbc0553dcafadc2c8cd451508e4993e937aba6d9a"
+        },
+        {
+          "name": "Tunde",
+          "id": "b3c91e79-e7c3-4f47-96be-97dfece21cb9",
+          "address": "0x4de96771887a8d58d6b479cd0ef48f7e7087b6e23f244e92116423593c73c37a"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "id": "dc80d1f5-ed7a-4b92-a97e-6f68711b0872",
+      "name": "Simulated Household 3, Garden Flat",
+      "members": [
+        {
+          "name": "Ibrahim",
+          "id": "f59d2586-c113-40e0-a08e-b009377648cc",
+          "address": "0x0e60b88268a17e28d410a13fea5ec40bceeeb1ae2216495fdd158d4b277392e6"
+        },
+        {
+          "name": "Halima",
+          "id": "d8fe7012-b31b-45e7-a890-cb5f75d22bbd",
+          "address": "0x9fba3308089c10b797289810f3a1757ed75566edc3e2914a62026a197580c251"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "id": "3e73647b-8254-438b-881a-ec3508e651d5",
+      "name": "Simulated Household 4, Harbour View",
+      "members": [
+        {
+          "name": "Ngozi",
+          "id": "50f77461-2767-4b2b-94e4-9c527c4c85b6",
+          "address": "0xeda0751ab7db700589576c4a0f72657c8b2072f4e3b54c8e19d33d865a7e2edb"
+        },
+        {
+          "name": "Emeka",
+          "id": "e43ca639-eeec-4590-8f5a-b3adcbfe2ac1",
+          "address": "0x207f3b3104933e7bae14f489c812eb406333cde706f43f8d70d6aaf656c5ef09"
+        },
+        {
+          "name": "Yetunde",
+          "id": "052c9260-ee64-4594-8cc8-0fa6df901b48",
+          "address": "0x3f788de5c7077aa2e18789c58ad919b52be4ba05a114cf994eac7fc4a2d888ef"
+        }
+      ]
+    }
+  ],
+  "actions": [],
+  "settlements": []
+}
