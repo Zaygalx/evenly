@@ -351,6 +351,60 @@
       "category": "health",
       "action": "accept",
       "deviation": 0
+    },
+    {
+      "key": "2:1:0",
+      "household": 2,
+      "day": 1,
+      "line": "groceries 4700 paid by Halima",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "2:1:1",
+      "household": 2,
+      "day": 1,
+      "line": "internet 9000 paid by Ibrahim",
+      "category": "utilities",
+      "action": "accept",
+      "deviation": 0.02
+    },
+    {
+      "key": "2:1:2",
+      "household": 2,
+      "day": 1,
+      "line": "rent 12000 paid by Halima",
+      "category": "rent",
+      "action": "accept",
+      "deviation": 0.03
+    },
+    {
+      "key": "2:1:3",
+      "household": 2,
+      "day": 1,
+      "line": "groceries 4100 paid by Ibrahim",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "2:1:4",
+      "household": 2,
+      "day": 1,
+      "line": "water bill 2400 paid by Ibrahim",
+      "category": "utilities",
+      "action": "accept",
+      "deviation": 0.02
+    },
+    {
+      "key": "2:1:5",
+      "household": 2,
+      "day": 1,
+      "line": "pharmacy 2900 paid by Ibrahim",
+      "category": "health",
+      "action": "accept",
+      "deviation": 0
     }
   ],
   "settlements": []
