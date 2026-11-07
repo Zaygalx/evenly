@@ -3,6 +3,8 @@ import { ensureHousehold } from "@/lib/hydrate";
 import { addSettlement, computeBalances, getHousehold } from "@/lib/store";
 import { displayToUsdcMinor, suggestSettlements } from "@/lib/settlement";
 import { ensureCheckpointStream } from "@/lib/tatum";
+import { rememberInBackground } from "@/lib/memory/background";
+import { getMembers } from "@/lib/store";
 
 /**
  * Create pending settlements from the household's current balances.
@@ -30,6 +32,24 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       toMemberId: pair.toMemberId,
       amountUsdcMinor: displayToUsdcMinor(pair.displayMinor, household.displayPerUsdcMinor as number),
     }),
+  );
+  // A settlement is a promise the household made; like everything else it
+  // belongs in Walrus Memory from the moment it exists. Without this, a
+  // pending settlement lived only in the creating instance's local store
+  // and no other instance could ever see it, match its transfer or flip it.
+  const members = getMembers(id);
+  rememberInBackground(
+    settlements.map((s) => ({
+      kind: "settlement" as const,
+      householdId: id,
+      fields: {
+        settlement: s.id,
+        from: members.find((m) => m.id === s.fromMemberId)?.name ?? s.fromMemberId,
+        to: members.find((m) => m.id === s.toMemberId)?.name ?? s.toMemberId,
+        amountUsdcMinor: String(s.amountUsdcMinor),
+        status: "pending",
+      },
+    })),
   );
   ensureCheckpointStream(id);
   return NextResponse.json({ settlements }, { status: 201 });

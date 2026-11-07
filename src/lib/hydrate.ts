@@ -104,7 +104,17 @@ export async function ensureHousehold(householdId: string): Promise<boolean> {
     }
   }
 
+  // Settlement records are appended at creation (pending) and again when
+  // the transfer is detected (settled, with digest). The latest record per
+  // settlement id is the truth.
+  const settlementById = new Map<string, (typeof records)[number]>();
   for (const rec of byKind("settlement")) {
+    const sid = rec.record.fields.settlement;
+    if (!sid) continue;
+    const prev = settlementById.get(sid);
+    if (!prev || (rec.createdAt ?? "") >= (prev.createdAt ?? "")) settlementById.set(sid, rec);
+  }
+  for (const rec of settlementById.values()) {
     const f = rec.record.fields;
     if (!f.settlement || !f.amountUsdcMinor) continue;
     const from = members.find((m) => m.name === f.from);
@@ -115,7 +125,7 @@ export async function ensureHousehold(householdId: string): Promise<boolean> {
       fromMemberId: from?.id ?? f.from ?? "",
       toMemberId: to?.id ?? f.to ?? "",
       amountUsdcMinor: Number(f.amountUsdcMinor),
-      status: "settled",
+      status: f.status === "pending" && !f.digest ? "pending" : "settled",
       createdAt: new Date().toISOString(),
       digest: f.digest,
     };

@@ -140,6 +140,7 @@ export function checkHouseholdSettlements(householdId: string, extraTransfers: O
             from: members.find((m) => m.id === s.fromMemberId)?.name ?? s.fromMemberId,
             to: members.find((m) => m.id === s.toMemberId)?.name ?? s.toMemberId,
             amountUsdcMinor: String(s.amountUsdcMinor),
+            status: "settled",
             digest: match.digest,
             simulated: simulated ? "yes" : "no",
           },
