@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { Balance, DecisionEvent, Expense, Household, Member, Settlement } from "@/lib/types";
 import { formatMinor } from "@/lib/money";
-import { explorerLinkForBlob } from "@/lib/explorer";
+import { explorerLinkForBlob, explorerLinkForTx } from "@/lib/explorer";
+import { formatUsdc } from "@/lib/settlement";
 
 export interface HouseholdData {
   household: Household;
@@ -32,6 +33,9 @@ export default function HouseholdPage() {
   const [correctingId, setCorrectingId] = useState<string | null>(null);
   const [corrections, setCorrections] = useState<Record<string, string>>({});
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [rateInput, setRateInput] = useState("");
+  const [settleMsg, setSettleMsg] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -45,6 +49,15 @@ export default function HouseholdPage() {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Live settlement feed: reload whenever the server reports a flip.
+  const hasPending = (data?.settlements ?? []).some((s) => s.status === "pending");
+  useEffect(() => {
+    if (!hasPending) return;
+    const source = new EventSource(`/api/households/${id}/settlements/stream`);
+    source.addEventListener("settled", () => { void load(); });
+    return () => source.close();
+  }, [hasPending, id, load]);
 
   async function logExpense(e: React.FormEvent) {
     e.preventDefault();
@@ -83,6 +96,50 @@ export default function HouseholdPage() {
       await load();
     } catch (err) {
       setMemberError(err instanceof Error ? err.message : "Could not add that member.");
+    }
+  }
+
+  async function saveRate(e: React.FormEvent) {
+    e.preventDefault();
+    const major = Number(rateInput);
+    if (!Number.isFinite(major) || major <= 0) { setSettleMsg("Enter a valid rate first."); return; }
+    await fetch(`/api/households/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ displayPerUsdcMinor: Math.round(major * 100) }),
+    });
+    setRateInput("");
+    await load();
+  }
+
+  async function createSettlements() {
+    setSettleMsg(null);
+    const res = await fetch(`/api/households/${id}/settlements`, { method: "POST" });
+    const json = await res.json();
+    if (!res.ok) { setSettleMsg(json.error ?? "Could not create settlements."); return; }
+    setSettleMsg(json.note ?? `Created ${json.settlements?.length ?? 0} pending settlement(s). Send the USDC from the debtor's wallet — Evenly watches the chain and flips them to Settled.`);
+    await load();
+  }
+
+  async function checkSettlements(simulate: boolean) {
+    setChecking(true);
+    setSettleMsg(null);
+    try {
+      const res = await fetch(`/api/households/${id}/settlements/check`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ simulate }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setSettleMsg(json.error ?? "Check failed."); return; }
+      setSettleMsg(
+        json.settled?.length
+          ? `${json.settled.length} settlement(s) flipped to Settled${json.simulated ? " (SIMULATED transfer)" : ""}.`
+          : json.note ?? `Checked ${json.checkedTransfers ?? 0} on-chain transfer(s) — no match yet. Watcher: ${json.watcher?.status ?? "n/a"}.`,
+      );
+      await load();
+    } finally {
+      setChecking(false);
     }
   }
 
@@ -195,6 +252,51 @@ export default function HouseholdPage() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="card" aria-label="Settle up">
+        <h2>Settle up in USDC</h2>
+        {settleMsg && <div className="notice info" role="status">{settleMsg}</div>}
+        {!household.displayPerUsdcMinor ? (
+          <form onSubmit={saveRate}>
+            <p className="muted small">Settlements are paid in USDC on Sui. Tell Evenly your rate so amounts are honest — it never invents an exchange rate.</p>
+            <label htmlFor="rate">1 USDC = how many {household.currency}?</label>
+            <input id="rate" inputMode="decimal" value={rateInput} onChange={(e) => setRateInput(e.target.value)} placeholder="1500" required />
+            <button className="primary" type="submit">Save rate</button>
+          </form>
+        ) : (
+          <>
+            <p className="muted small">Rate: 1 USDC = {household.currency} {formatMinor(household.displayPerUsdcMinor)}.</p>
+            <button className="primary" onClick={() => void createSettlements()}>Create settlements from balances</button>
+          </>
+        )}
+        {data.settlements.length > 0 && (
+          <ul className="clean" style={{ marginTop: 12 }}>
+            {data.settlements.map((s) => (
+              <li key={s.id}>
+                <div className="row">
+                  <span>{memberNameById.get(s.fromMemberId)} → {memberNameById.get(s.toMemberId)}</span>
+                  <span className="amount">{formatUsdc(s.amountUsdcMinor)} USDC</span>
+                </div>
+                <div className="muted small">
+                  {s.status === "settled" ? (
+                    <>✅ Settled{s.settledAt ? ` ${new Date(s.settledAt).toLocaleString()}` : ""} · tx {s.digest ? <a href={explorerLinkForTx(s.digest)} target="_blank" rel="noreferrer" className="mono">{s.digest.slice(0, 18)}…</a> : "—"}</>
+                  ) : (
+                    <>⏳ Waiting for the transfer on Sui… send exactly this amount to {memberNameById.get(s.toMemberId)}'s address.</>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {data.settlements.some((s) => s.status === "pending") && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <button className="secondary" disabled={checking} onClick={() => void checkSettlements(false)}>{checking ? "Checking…" : "Check the chain now"}</button>
+            {data.memoryMode === "local-mock" && (
+              <button className="secondary" disabled={checking} onClick={() => void checkSettlements(true)}>Simulate the transfer (local demo only)</button>
+            )}
+          </div>
         )}
       </section>
 
