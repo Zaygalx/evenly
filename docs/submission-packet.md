@@ -9,10 +9,10 @@ Prepared 7 Nov 2026. Deadline Tue 10 Nov 2026, 17:00 UTC.
   clean. The only env file is .env.example with empty values. Real keys live
   in Vercel env and the local sim vault, never in git.
 - Live app: https://evenly-gamma-three.vercel.app
-- Blog post (dev.to): DRAFT, not yet published.
-  https://dev.to/zaygalx/one-correction-and-it-learned-building-evenly-a-money-app-with-a-memory-4l2n-temp-slug-779537
-  The slug changes on publish. Publish first, then use the final URL in the
-  form and in the X post.
+- Blog post (dev.to): PUBLISHED 7 Nov 2026.
+  https://dev.to/zaygalx/one-correction-and-it-learned-building-evenly-a-money-app-with-a-memory-150i
+  
+  
 - Demo video: does not exist yet. The plan is in docs/demo-video-plan.md and
   rendering waits for the user's approval.
 - X post: not posted. X is not connected to Muse. Drafts are in
