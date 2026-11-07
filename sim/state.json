@@ -518,68 +518,68 @@
   "settlements": [
     {
       "household": 0,
-      "settlementId": "4793a37f-b768-4859-a8ec-0cef7da86f8c",
+      "settlementId": "f12bd482-05be-449c-b7a0-bc0b26306e46",
       "from": "Chidi",
       "to": "Adaeze",
       "fromAddress": "0xe7469ca9f7266a7c12c6000c367601f8c3e6b60911eaa36b8201b9dc4fcd7bac",
       "toAddress": "0x44f22dc53d8cf3928fbaf6cdaaaf7d04cd32eb3a43cd9edefd29e4c46e760e5d",
       "amountUsdcMinor": 370000,
-      "status": "pending",
+      "status": "settled",
       "digest": "B3eqxfhVy5STuvnKTYLfh3xkrpxHoZjMgsFnYFb5KkMo"
     },
     {
       "household": 1,
-      "settlementId": "3e0d9091-43d5-4088-9248-f8554bd78ee6",
+      "settlementId": "e0351944-d2c1-486e-a424-b13cc4cc06df",
       "from": "Tunde",
       "to": "Sara",
       "fromAddress": "0x4de96771887a8d58d6b479cd0ef48f7e7087b6e23f244e92116423593c73c37a",
       "toAddress": "0xc5ace9ba862f3d8311c2842bbc0553dcafadc2c8cd451508e4993e937aba6d9a",
       "amountUsdcMinor": 1431560,
-      "status": "pending",
+      "status": "settled",
       "digest": "BWM5wXrefpfQyMLhsUobE9pSkHHPiRW2v6CDJ4szY98Q"
     },
     {
       "household": 1,
-      "settlementId": "beee9f88-b93a-4566-b642-c2c868552464",
+      "settlementId": "ca30e4d6-d720-4bfe-a2dd-ccefb478f52c",
       "from": "Tunde",
       "to": "Funmi",
       "fromAddress": "0x4de96771887a8d58d6b479cd0ef48f7e7087b6e23f244e92116423593c73c37a",
       "toAddress": "0x54d1add48e29c21afa37a429e65ecbd0a17b1e5ff613b349aa7dd6812e3c7877",
       "amountUsdcMinor": 2144347,
-      "status": "pending",
+      "status": "settled",
       "digest": "FwZproub5co8NQJfq7udihSS8aWUEvHZunZsjQPCCXz"
     },
     {
       "household": 2,
-      "settlementId": "70f8d4bb-1535-494d-a543-8d05748e3192",
+      "settlementId": "16418726-2167-401c-a094-85b99a9c5234",
       "from": "Ibrahim",
       "to": "Halima",
       "fromAddress": "0x0e60b88268a17e28d410a13fea5ec40bceeeb1ae2216495fdd158d4b277392e6",
       "toAddress": "0x9fba3308089c10b797289810f3a1757ed75566edc3e2914a62026a197580c251",
       "amountUsdcMinor": 2445333,
-      "status": "pending",
+      "status": "settled",
       "digest": "D6YxMDVBjDT8aMkS1Sq41oJyrDYWgSPCjvTk9wzT8gCa"
     },
     {
       "household": 3,
-      "settlementId": "256565fc-50eb-4f5d-aa27-fc41f4f9b3f2",
+      "settlementId": "1b8de6bc-ed9d-4f40-8662-9491350ea344",
       "from": "Emeka",
       "to": "Ngozi",
       "fromAddress": "0x207f3b3104933e7bae14f489c812eb406333cde706f43f8d70d6aaf656c5ef09",
       "toAddress": "0xeda0751ab7db700589576c4a0f72657c8b2072f4e3b54c8e19d33d865a7e2edb",
       "amountUsdcMinor": 2955440,
-      "status": "pending",
+      "status": "settled",
       "digest": "7gZaEVwn47Vru4r43UuqXBTs7UQyE9eraa1ifAtbnGo"
     },
     {
       "household": 3,
-      "settlementId": "f6860863-13ed-46c2-9f92-8f4e4264dd50",
+      "settlementId": "f0318de8-487f-49cb-8713-8089d0c50e9a",
       "from": "Yetunde",
       "to": "Ngozi",
       "fromAddress": "0x3f788de5c7077aa2e18789c58ad919b52be4ba05a114cf994eac7fc4a2d888ef",
       "toAddress": "0xeda0751ab7db700589576c4a0f72657c8b2072f4e3b54c8e19d33d865a7e2edb",
       "amountUsdcMinor": 73467,
-      "status": "pending",
+      "status": "settled",
       "digest": "CnLXhWoSyTwBDWfnhYoWNpVSU5TLtoj7bDMB3X64MZkV"
     }
   ]
