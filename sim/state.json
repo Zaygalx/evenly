@@ -77,6 +77,23 @@
           "address": "0x3f788de5c7077aa2e18789c58ad919b52be4ba05a114cf994eac7fc4a2d888ef"
         }
       ]
+    },
+    {
+      "index": 4,
+      "id": "77fa9ae5-1fc4-4788-a795-ff01754b43bc",
+      "name": "Agent test household 5, Drift Flat",
+      "members": [
+        {
+          "name": "Tobi",
+          "id": "35803cae-057a-400f-bb6b-53cbd5245038",
+          "address": "0x74b524880c9573d28aa34a419b25fd06ae1b67305f72c871d4781e25cdc85d60"
+        },
+        {
+          "name": "Aisha",
+          "id": "0c3ca5ec-457b-49ba-87da-6caf43c72b82",
+          "address": "0x88253b05d554524d95d62e56b085b68c1dc6ad3c1f7a7dc4ef9d0d6c9e1bf941"
+        }
+      ]
     }
   ],
   "actions": [

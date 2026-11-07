@@ -21,6 +21,10 @@ export interface Persona {
   members: PersonaMember[];
   /** Purchases per simulated day: raw one line strings, exactly as a user would type. */
   days: string[][];
+  /** Optional preference drift: from fromDayIndex on, the hidden rule for
+   *  category changes to rules. The app is never told; it only sees the
+   *  corrections that follow. */
+  drift?: { fromDayIndex: number; category: string; rules: Record<string, number> };
 }
 
 export const PERSONAS: Persona[] = [
@@ -142,9 +146,55 @@ export const PERSONAS: Persona[] = [
       ],
     ],
   },
+  {
+    householdName: "Agent test household 5, Drift Flat",
+    members: [
+      { name: "Tobi", rules: { groceries: { Tobi: 0.5, Aisha: 0.5 }, utilities: { Tobi: 0.6, Aisha: 0.4 }, fun: { Tobi: 0.5, Aisha: 0.5 }, household: { Tobi: 0.5, Aisha: 0.5 } } },
+      { name: "Aisha", rules: { groceries: { Tobi: 0.5, Aisha: 0.5 }, utilities: { Tobi: 0.6, Aisha: 0.4 }, fun: { Tobi: 0.5, Aisha: 0.5 }, household: { Tobi: 0.5, Aisha: 0.5 } } },
+    ],
+    drift: { fromDayIndex: 2, category: "groceries", rules: { Tobi: 0.7, Aisha: 0.3 } },
+    days: [
+      [
+        "groceries 3800 paid by Tobi",
+        "electricity 2600 paid by Aisha",
+        "groceries 2950 paid by Aisha",
+        "movie tickets 4000 paid by Tobi",
+        "detergent 1500 paid by Aisha",
+        "electricity 3100 paid by Tobi",
+      ],
+      [
+        "groceries 4600 paid by Aisha",
+        "netflix 4500 paid by Tobi",
+        "electricity 2800 paid by Aisha",
+        "groceries 3300 paid by Tobi",
+        "detergent 1750 paid by Tobi",
+        "movie tickets 5200 paid by Aisha",
+      ],
+      [
+        "groceries 4100 paid by Tobi",
+        "electricity 2950 paid by Aisha",
+        "groceries 3600 paid by Aisha",
+        "netflix 4500 paid by Aisha",
+        "groceries 2750 paid by Tobi",
+        "detergent 1600 paid by Aisha",
+      ],
+      [
+        "groceries 3950 paid by Aisha",
+        "electricity 2700 paid by Tobi",
+        "groceries 4400 paid by Tobi",
+        "movie tickets 4800 paid by Aisha",
+        "detergent 1850 paid by Tobi",
+        "groceries 3100 paid by Aisha",
+      ],
+    ],
+  },
 ];
 
 /** Accept when the proposed weights are within this distance of the hidden weights. */
 export const ACCEPT_TOLERANCE = 0.1;
+
+/** Probability that an agent overrides a proposal it would otherwise
+ *  accept, for that one purchase only (a one-off treat). */
+export const NOISE_OVERRIDE_P = 0.1;
 /** Random jitter applied to corrections, and the noise band on acceptance. */
 export const NOISE = 0.04;

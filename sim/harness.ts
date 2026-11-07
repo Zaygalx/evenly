@@ -33,7 +33,7 @@ import { join } from "node:path";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { Transaction } from "@mysten/sui/transactions";
-import { PERSONAS, ACCEPT_TOLERANCE, NOISE } from "./personas";
+import { PERSONAS, ACCEPT_TOLERANCE, NOISE, NOISE_OVERRIDE_P } from "./personas";
 
 const API = process.env.EVENLY_API ?? "https://evenly-gamma-three.vercel.app";
 const STATE_PATH = join(process.cwd(), "sim", "state.json");
@@ -43,7 +43,7 @@ const USDC_TYPE = "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f
 const RATE_MINOR = 150000; // 1 USDC = NGN 1,500.00 (household set rate, like a real household would)
 
 interface WalletRec { household: number; member: string; address: string; secret: string }
-interface ActionRec { key: string; household: number; day: number; line: string; category: string; action: "accept" | "correct"; deviation: number }
+interface ActionRec { key: string; household: number; day: number; line: string; category: string; action: "accept" | "correct"; deviation: number; note?: string }
 interface SettlementRec { household: number; settlementId: string; from: string; to: string; fromAddress: string; toAddress: string; amountUsdcMinor: number; status: string; digest?: string }
 interface State {
   households: { index: number; id: string; name: string; members: { name: string; id: string; address: string }[] }[];
@@ -135,6 +135,16 @@ function jitterWeights(base: Record<string, number>, names: string[]): Record<st
   }
   for (const n of names) raw[n] = raw[n] / total;
   return raw;
+}
+function overrideWeights(proposed: Record<string, number>, names: string[]): Record<string, number> {
+  const out: Record<string, number> = { ...proposed };
+  const first = names[0];
+  const shift = (0.15 + Math.random() * 0.1) * (Math.random() < 0.5 ? -1 : 1);
+  const target = Math.min(0.9, Math.max(0.1, (out[first] ?? 0) + shift));
+  const othersTotal = names.slice(1).reduce((a, n) => a + (out[n] ?? 0), 0) || 1;
+  out[first] = target;
+  for (const n of names.slice(1)) out[n] = ((out[n] ?? 0) / othersTotal) * (1 - target);
+  return out;
 }
 function sharesFromWeights(amountMinor: number, weights: Record<string, number>, memberIdByName: Map<string, string>) {
   const entries = Object.entries(weights).filter(([, w]) => w > 0);
@@ -300,7 +310,10 @@ async function cycle(hhIndex: number, dayIndex: number) {
   const hh = state.households[hhIndex];
   if (!hh) throw new Error("Run setup first");
   const persona = PERSONAS[hhIndex];
-  const rules = persona.members[0].rules;
+  const drift = persona.drift;
+  const rules = drift && dayIndex >= drift.fromDayIndex
+    ? { ...persona.members[0].rules, [drift.category]: drift.rules }
+    : persona.members[0].rules;
   const lines = persona.days[dayIndex];
   if (!lines) throw new Error(`No scripted day ${dayIndex} for household ${hhIndex}`);
   const memberIdByName = new Map(hh.members.map((m) => [m.name, m.id]));
@@ -358,9 +371,20 @@ async function cycle(hhIndex: number, dayIndex: number) {
 
     let body: unknown;
     let action: "accept" | "correct";
+    let note: string | undefined;
     if (deviation <= ACCEPT_TOLERANCE + Math.random() * NOISE) {
-      action = "accept";
-      body = { action };
+      if (Math.random() < NOISE_OVERRIDE_P) {
+        // Noise override: the agent changes a split it would otherwise
+        // accept, for this one purchase only (a one-off treat). Because a
+        // correction teaches a rule in Evenly, an override can disturb the
+        // next proposal in that category, and the recovery is measured too.
+        action = "correct";
+        note = "noise-override";
+        body = { action, shares: sharesFromWeights(amountMinor, overrideWeights(proposed, names), memberIdByName) };
+      } else {
+        action = "accept";
+        body = { action };
+      }
     } else {
       action = "correct";
       body = { action, shares: sharesFromWeights(amountMinor, jitterWeights(hidden, names), memberIdByName) };
@@ -375,7 +399,7 @@ async function cycle(hhIndex: number, dayIndex: number) {
       await waitForMemory(hh.id, (m) => (m.kind === "acceptance" || m.kind === "correction") && m.text.includes(`expense=${expenseId}`), `decision ${expenseId}`, 300000);
     }
 
-    state.actions.push({ key, household: hhIndex, day: dayIndex, line, category, action, deviation: Math.round(deviation * 1000) / 1000 });
+    state.actions.push({ key, household: hhIndex, day: dayIndex, line, category, action, deviation: Math.round(deviation * 1000) / 1000, ...(note ? { note } : {}) });
     saveState(state);
     console.log(`${key} [${category}] proposed vs hidden deviation ${deviation.toFixed(3)} -> ${action}`);
     await sleep(8000);
@@ -489,6 +513,65 @@ async function report() {
   console.log(`report written: ${totalMemories} memories across ${state.households.length} agent test households`);
 }
 
+
+async function reportExtension() {
+  const state = loadState();
+  const hh = state.households.find((h) => h.index === 4);
+  if (!hh) throw new Error("Extension household is not set up");
+  const persona = PERSONAS[4];
+  const reportPath = join(process.cwd(), "sim", "REPORT.md");
+  const existing = readFileSync(reportPath, "utf8");
+  const HEADER = "## Extension: noise and preference drift";
+  if (existing.includes(HEADER)) { console.log("extension section already present, not appending twice"); return; }
+  const mem = await api(`/api/households/${hh.id}/memories`);
+  const memories = (mem as any).memories ?? [];
+  const acts = state.actions.filter((a) => a.household === 4);
+  const lines: string[] = [];
+  lines.push("", HEADER, "");
+  lines.push("A separate extension run in its own namespace, reported apart from the");
+  lines.push("four households above and never merged with them or with real households.");
+  lines.push("");
+  lines.push(`Household: ${hh.name}`);
+  lines.push(`Household id: ${hh.id}`);
+  lines.push(`Walrus namespace: evenly-hh-${hh.id}`);
+  lines.push(`Members: ${hh.members.map((m) => m.name).join(", ")} (automated agents)`);
+  lines.push(`Memories on Walrus in this namespace: ${memories.length}`);
+  lines.push("");
+  lines.push("Noise: on about 10 percent of proposals an agent would otherwise accept,");
+  lines.push("it overrode the split for that one purchase only, a one-off treat. A");
+  lines.push("correction teaches a rule in Evenly, so an override can disturb the next");
+  lines.push("proposal in that category, and the recovery from that is measured too.");
+  lines.push("Preference drift: the hidden groceries rule changed from Tobi 50, Aisha 50");
+  lines.push("to Tobi 70, Aisha 30 at the start of day 3. The app was not told. It only");
+  lines.push("saw the corrections that followed.");
+  lines.push("No USDC settlements were run for this household.");
+  lines.push("");
+  for (let d = 0; d < persona.days.length; d++) {
+    const da = acts.filter((a) => a.day === d);
+    const acc = da.filter((a) => a.action === "accept").length;
+    const corr = da.filter((a) => a.action === "correct" && a.note !== "noise-override").length;
+    const noise = da.filter((a) => a.note === "noise-override").length;
+    lines.push(`Day ${d + 1}: ${da.length} purchases, ${acc} accepted without correction, acceptance rate ${da.length ? Math.round((acc / da.length) * 100) : 0}%, ${corr} rule corrections, ${noise} noise overrides`);
+  }
+  const driftDay = persona.drift!.fromDayIndex;
+  const postDriftGroceries = acts.filter((a) => a.day >= driftDay && a.category === "groceries");
+  let relearn = 0;
+  let recovered = false;
+  for (const a of postDriftGroceries) {
+    if (a.action === "accept") { recovered = true; break; }
+    if (a.note !== "noise-override") relearn++;
+  }
+  const totalNoise = acts.filter((a) => a.note === "noise-override").length;
+  lines.push("");
+  lines.push(`Relearning after the drift: ${relearn} groceries correction(s) after day ${driftDay + 1} began before a groceries proposal was accepted again${recovered ? "." : " (no post drift groceries acceptance was recorded)."}`);
+  lines.push(`Total noise overrides in this run: ${totalNoise} of ${acts.length} purchases.`);
+  lines.push("");
+  lines.push("Blob ids in this namespace:");
+  for (const m of memories) lines.push(`- ${m.kind}: ${m.blobId}`);
+  writeFileSync(reportPath, existing.replace(/\n*$/, "\n") + lines.join("\n") + "\n");
+  console.log(`extension section appended: ${memories.length} memories, ${acts.length} actions`);
+}
+
 async function main() {
   const [cmd, a, b] = process.argv.slice(2);
   if (cmd === "setup") await setup();
@@ -496,6 +579,7 @@ async function main() {
   else if (cmd === "settle-prep") await settlePrep();
   else if (cmd === "settle-send") await settleSend();
   else if (cmd === "report") await report();
-  else console.log("usage: setup | cycle <hh> <day> | settle-prep | settle-send | report");
+  else if (cmd === "report-extension") await reportExtension();
+  else console.log("usage: setup | cycle <hh> <day> | settle-prep | settle-send | report | report-extension");
 }
 main().catch((err) => { console.error("HARNESS ERROR:", err instanceof Error ? err.message : err); process.exit(1); });
