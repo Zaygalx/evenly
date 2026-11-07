@@ -4,6 +4,7 @@ import {
   insertHousehold,
   insertMember,
   insertSettlement,
+  recordDecision,
 } from "./store";
 import { getMemoryBackend, listAllRecords } from "./memory/client";
 import { parseWeights } from "./memory/serialize";
@@ -54,18 +55,36 @@ export async function ensureHousehold(householdId: string): Promise<boolean> {
     insertMember(member);
   }
 
+  // Decisions are memories too. Index the latest acceptance or correction
+  // per expense so a rebuilt expense carries its true status and shares:
+  // an undecided proposal must stay decidable on a cold instance, and a
+  // corrected split must keep the corrected shares.
+  const decisionByExpense = new Map<string, { kind: string; weights?: string; createdAt?: string }>();
+  for (const rec of [...byKind("acceptance"), ...byKind("correction")]) {
+    const f = rec.record.fields;
+    if (!f.expense) continue;
+    const prev = decisionByExpense.get(f.expense);
+    if (!prev || (rec.createdAt ?? "") >= (prev.createdAt ?? "")) {
+      decisionByExpense.set(f.expense, { kind: rec.record.kind, weights: f.weights, createdAt: rec.createdAt });
+    }
+  }
+
   for (const rec of byKind("expense")) {
     const f = rec.record.fields;
     if (!f.expense || !f.amountMinor || !f.payerId) continue;
-    const weights = parseWeights(f.weights);
+    const decision = decisionByExpense.get(f.expense);
+    const effectiveWeights =
+      decision?.kind === "correction" ? (parseWeights(decision.weights) ?? parseWeights(f.weights)) : parseWeights(f.weights);
     let shares: Expense["shares"] = [];
-    if (weights) {
+    if (effectiveWeights) {
       const resolved = members
-        .map((m) => ({ memberId: m.id, weight: weights[m.name] ?? 0 }))
+        .map((m) => ({ memberId: m.id, weight: effectiveWeights[m.name] ?? 0 }))
         .filter((w) => w.weight > 0);
       if (resolved.length > 0) shares = weightedShares(Number(f.amountMinor), resolved);
     }
     if (shares.length === 0) continue;
+    const status: Expense["status"] =
+      decision?.kind === "correction" ? "corrected" : decision?.kind === "acceptance" ? "accepted" : "proposed";
     insertExpense({
       id: f.expense,
       householdId,
@@ -75,9 +94,12 @@ export async function ensureHousehold(householdId: string): Promise<boolean> {
       amountMinor: Number(f.amountMinor),
       paidByMemberId: f.payerId,
       shares,
-      status: "accepted",
+      status,
       createdAt: f.createdAt ?? new Date().toISOString(),
     });
+    if (decision) {
+      recordDecision(householdId, f.expense, status === "corrected" ? "corrected" : "accepted", status === "corrected");
+    }
   }
 
   for (const rec of byKind("settlement")) {

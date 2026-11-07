@@ -108,14 +108,29 @@ export async function rebuildAllFromMemories(targetHouseholdId: string): Promise
       insertMember(member);
     }
 
+    // Apply decision memories so rebuilt expenses carry their true status
+    // and shares: corrected splits keep the corrected shares, accepted ones
+    // keep the proposal, and only an undecided expense stays a proposal.
+    const decisionByExpense = new Map<string, { kind: string; weights?: string; createdAt?: string }>();
+    for (const rec of [...byKind("acceptance"), ...byKind("correction")]) {
+      const f = rec.record.fields;
+      if (!f.expense) continue;
+      const prev = decisionByExpense.get(f.expense);
+      if (!prev || (rec.createdAt ?? "") >= (prev.createdAt ?? "")) {
+        decisionByExpense.set(f.expense, { kind: rec.record.kind, weights: f.weights, createdAt: rec.createdAt });
+      }
+    }
+
     for (const rec of byKind("expense")) {
       const f = rec.record.fields;
       if (!f.expense || !f.amountMinor || !f.payerId) continue;
-      const weights = parseWeights(f.weights);
+      const decision = decisionByExpense.get(f.expense);
+      const effectiveWeights =
+        decision?.kind === "correction" ? (parseWeights(decision.weights) ?? parseWeights(f.weights)) : parseWeights(f.weights);
       let shares: Expense["shares"] = [];
-      if (weights) {
+      if (effectiveWeights) {
         const resolved = members
-          .map((m) => ({ memberId: m.id, weight: weights[m.name] ?? 0 }))
+          .map((m) => ({ memberId: m.id, weight: effectiveWeights[m.name] ?? 0 }))
           .filter((w) => w.weight > 0);
         if (resolved.length > 0) shares = weightedShares(Number(f.amountMinor), resolved);
       }
@@ -129,7 +144,7 @@ export async function rebuildAllFromMemories(targetHouseholdId: string): Promise
         amountMinor: Number(f.amountMinor),
         paidByMemberId: f.payerId,
         shares,
-        status: "accepted", // a rebuilt expense is history, not a fresh proposal
+        status: decision?.kind === "correction" ? "corrected" : decision?.kind === "acceptance" ? "accepted" : "proposed",
         createdAt: f.createdAt ?? new Date().toISOString(),
       });
     }
