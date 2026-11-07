@@ -73,8 +73,9 @@ export default function HomePage() {
       </div>
 
       <p className="muted small">
-        Hackathon build (Total Recall — Tatum × Walrus Memory). Memory features arrive in Phase 2;
-        anything simulated is labelled. See <a href="/limits">honest limits</a>.
+        Hackathon build (Total Recall — Tatum × Walrus Memory). Memory, live settlement,
+        delegate-key ownership and the restart proof are all built in; anything simulated
+        is labelled. See <a href="/limits">honest limits</a>.
       </p>
     </main>
   );

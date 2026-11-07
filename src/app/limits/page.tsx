@@ -2,15 +2,34 @@ export default function LimitsPage() {
   return (
     <main>
       <h1>Honest limits</h1>
-      <p className="lede">What Evenly really does today, and what it does not do yet. We label anything simulated, always.</p>
+      <p className="lede">What Evenly really does, and what it does not do. Anything simulated is labelled, in the app and here.</p>
 
       <section className="card">
-        <h2>Phase 1 (this build)</h2>
+        <h2>Memory (Walrus)</h2>
         <ul className="clean">
-          <li><strong>Real:</strong> household creation, invite links, member Sui addresses, one-line logging with a deterministic parser (no AI), equal splits, balances.</li>
-          <li><strong>Not yet:</strong> memory-driven splits (Phase 2), live on-chain settlement detection (Phase 3), delegate-key ownership and revoke (Phase 4).</li>
-          <li><strong>Storage:</strong> Phase 1 state lives in server memory and is lost on restart. That is exactly the problem Phase 2 (Walrus Memory as source of truth) and the Phase 4 restart proof address. Do not treat Phase 1 as durable.</li>
-          <li><strong>Identity:</strong> Phase 1 "joining" is name + Sui address, with no wallet signature check yet. Anyone with an invite link can join, so treat invite links as secrets.</li>
+          <li><strong>Real when configured:</strong> with a Walrus Memory account id + delegate key in env vars, all memories are written to Walrus Memory on Mainnet via the MemWal SDK (one namespace per household), paced to respect the relayer rate limits. The app's local state is only a cache — the restart proof rebuilds from memory alone.</li>
+          <li><strong>Simulated otherwise:</strong> without keys, Evenly runs on a local in-process memory that is labelled "SIMULATED" everywhere it matters. It demonstrates the learning loop; it is not Walrus and its blob ids are not on-chain.</li>
+          <li><strong>Recall is semantic:</strong> the split engine reads structured memories back from recall results. Very new memories can take a moment to become recallable on the real relayer; Evenly always waits for a write to complete before reading back.</li>
+        </ul>
+      </section>
+
+      <section className="card">
+        <h2>Settlement (Tatum + Sui)</h2>
+        <ul className="clean">
+          <li><strong>Real when configured:</strong> with a Tatum API key, a server-side gRPC checkpoint stream watches Sui, with a polling backfill on every reconnect (streams start at the tip and cannot resume — the backfill is what makes detection reliable).</li>
+          <li><strong>Inactive without a key:</strong> settlement checks plainly report that on-chain detection is off. Nothing is ever marked settled without an observed transfer (or an explicitly simulated one in local demo mode, labelled as simulated).</li>
+          <li><strong>FX:</strong> converting household balances (e.g. NGN) into USDC uses a rate the household sets itself. Evenly never fetches or invents an exchange rate.</li>
+          <li><strong>Matching tolerance:</strong> a transfer settles a settlement when it is Circle USDC, from the debtor to the creditor, and at least 99% of the expected amount.</li>
+        </ul>
+      </section>
+
+      <section className="card">
+        <h2>Ownership</h2>
+        <ul className="clean">
+          <li>Delegate keys are generated with the real SDK, and only public keys are stored — a member's private key is shown once, to them, and never persisted.</li>
+          <li>Adding/removing delegate keys on-chain is an owner-signed action in the Walrus Memory account; Evenly records the state and shows it, but cannot sign as the owner.</li>
+          <li>Revocation can lag ~30 seconds due to verification caching. The UI shows "revoking" until the lag passes — we do not pretend removal is instant.</li>
+          <li>Phase-1 identity still applies: joining is name + Sui address with no wallet signature check, so treat invite links as secrets.</li>
         </ul>
       </section>
 
@@ -18,8 +37,8 @@ export default function LimitsPage() {
         <h2>Money safety</h2>
         <ul className="clean">
           <li>Evenly never asks for a private key or seed phrase, in the app or in chat.</li>
-          <li>Settlement amounts in the demo are small mainnet USDC amounts only.</li>
-          <li>The app detects settlements; it does not move your money for you in Phases 1–2.</li>
+          <li>Evenly detects settlements; it never moves your money.</li>
+          <li>Demo amounts should stay small — these are real mainnet transfers when you settle for real.</li>
         </ul>
       </section>
 
