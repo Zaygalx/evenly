@@ -1,5 +1,6 @@
 import {
   getHousehold,
+  getMember,
   insertExpense,
   insertHousehold,
   insertMember,
@@ -133,4 +134,35 @@ export async function ensureHousehold(householdId: string): Promise<boolean> {
   }
 
   return true;
+}
+
+/**
+ * Member-level refresh for member-scoped routes. ensureHousehold only
+ * hydrates a household that is entirely missing locally, so a member added
+ * through another serverless instance stays invisible to this instance
+ * until it recycles: the member is on Walrus, but getMember misses. When a
+ * route cannot find its member, this re-reads the namespace's member
+ * records and inserts any that are missing locally, then reports whether
+ * the member is known now. (Found live on 7 Nov 2026: a delegate request
+ * for a freshly added member returned "Member not found" while the member
+ * record was plainly visible in the household's memories.)
+ */
+export async function ensureMember(householdId: string, memberId: string): Promise<boolean> {
+  if (!(await ensureHousehold(householdId))) return false;
+  if (getMember(memberId)) return true;
+  if (getMemoryBackend().mode !== "walrus") return false;
+  const records = await listAllRecords(householdId);
+  for (const rec of records) {
+    if (rec.record.kind !== "member") continue;
+    const f = rec.record.fields;
+    if (!f.member || !f.sui || getMember(f.member)) continue;
+    insertMember({
+      id: f.member,
+      householdId,
+      name: f.name ?? "Member",
+      suiAddress: f.sui,
+      joinedAt: new Date().toISOString(),
+    });
+  }
+  return !!getMember(memberId);
 }
