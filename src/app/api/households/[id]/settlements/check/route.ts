@@ -7,12 +7,13 @@ import { getMemoryBackend } from "@/lib/memory/client";
 /**
  * Run one settlement check now.
  *
- * - With a Tatum key: polling backfill over recent transactions to each
- *   creditor (the checkpoint stream also runs server-side and feeds the
- *   same matcher).
- * - Without a key: nothing can be verified on-chain, and we say so. The only
- *   exception is an explicitly simulated transfer in local-mock mode, which
- *   is labelled simulated in the response and in the settlement memory.
+ * - Detection: polling backfill over recent transactions affecting each
+ *   creditor, read from the public Sui GraphQL indexer (the JSON-RPC query
+ *   API was retired). With a Tatum key the checkpoint stream also runs
+ *   server-side and feeds the same matcher.
+ * - The only simulated path is an explicitly simulated transfer in
+ *   local-mock mode, labelled simulated in the response and in the
+ *   settlement memory.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -43,6 +44,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     watcher: getWatcherState(),
     note: tatumConfigured()
       ? undefined
-      : "No Tatum API key configured — on-chain transfers cannot be detected yet. Add TATUM_API_KEY to enable live settlement.",
+      : "No Tatum API key configured, so the live checkpoint stream is off. This check used the public Sui indexer backfill.",
   });
 }

@@ -22,15 +22,19 @@ import { rememberRecord } from "./memory/client";
  *    current tip and CANNOT resume: whatever happens while it is down is
  *    simply not delivered.
  * 2. BACKFILL — because of that, every (re)connect and every manual check
- *    runs a polling backfill over the LedgerService/JSON-RPC history for the
+ *    runs a polling backfill over recent transactions affecting the
  *    creditor addresses with pending settlements, so nothing is missed.
+ *    The backfill reads the public Sui GraphQL indexer: the JSON-RPC
+ *    transaction query API it used before has been retired by Sui (the
+ *    Tatum gateway answers it with HTTP 404, verified in production logs
+ *    on 7 Nov 2026), while the indexer returns the same digests, senders
+ *    and balance changes. Backfill responses are cached per address (15s)
+ *    and checks are serialised.
  *
- * Tatum's free tier allows ~3 requests/second, so backfill responses are
- * cached per address (15s) and checks are serialised.
- *
- * Without a Tatum API key the watcher is INACTIVE: it reports mode
- * "unconfigured" and never invents a settlement. In local-mock memory mode
- * the UI may inject a clearly-labelled simulated transfer instead.
+ * Without a Tatum API key the stream is inactive and checks rely on the
+ * indexer backfill alone; the mode says which path ran. The watcher never
+ * invents a settlement. In local-mock memory mode the UI may inject a
+ * clearly-labelled simulated transfer instead.
  */
 
 export interface TatumConfig {
@@ -57,37 +61,46 @@ const backfillCache = new Map<string, { at: number; transfers: ObservedTransfer[
 const BACKFILL_CACHE_MS = 15_000;
 
 export async function backfillTransfersForAddress(address: string, limit = 25): Promise<ObservedTransfer[]> {
-  const config = getTatumConfig();
-  if (!config.apiKey) return [];
   const cached = backfillCache.get(address.toLowerCase());
   if (cached && Date.now() - cached.at < BACKFILL_CACHE_MS) return cached.transfers;
 
-  const res = await fetch(config.rpcUrl, {
+  const graphqlUrl = process.env.SUI_GRAPHQL_URL ?? "https://graphql.mainnet.sui.io/graphql";
+  const query = `query($addr: SuiAddress!, $limit: Int!) {
+    transactions(first: $limit, filter: { affectedAddress: $addr }) {
+      nodes {
+        digest
+        sender { address }
+        effects { balanceChanges { nodes { owner { address } coinType { repr } amount } } }
+      }
+    }
+  }`;
+  const res = await fetch(graphqlUrl, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": config.apiKey },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "sui_queryTransactionBlocks",
-      params: [
-        {
-          filter: { ToAddress: address },
-          options: { showBalanceChanges: true, showInput: true },
-        },
-        null,
-        limit,
-        true, // descending order — newest first
-      ],
-    }),
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query, variables: { addr: address, limit } }),
   });
-  if (!res.ok) throw new Error(`Tatum backfill failed: HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Indexer backfill failed: HTTP ${res.status}`);
   const json = (await res.json()) as {
-    result?: { data?: { digest: string; transaction?: { data?: { sender?: string } }; balanceChanges?: { address: string; coinType: string; amount: string }[] }[] };
+    data?: {
+      transactions?: {
+        nodes?: {
+          digest: string;
+          sender?: { address?: string };
+          effects?: { balanceChanges?: { nodes?: { owner?: { address?: string }; coinType?: { repr?: string }; amount?: string }[] } };
+        }[];
+      };
+    };
+    errors?: unknown;
   };
-  const txs = (json.result?.data ?? []).map((tx) => ({
+  if (json.errors) throw new Error(`Indexer backfill failed: ${JSON.stringify(json.errors).slice(0, 200)}`);
+  const txs = (json.data?.transactions?.nodes ?? []).map((tx) => ({
     digest: tx.digest,
-    sender: tx.transaction?.data?.sender,
-    balanceChanges: tx.balanceChanges,
+    sender: tx.sender?.address,
+    balanceChanges: (tx.effects?.balanceChanges?.nodes ?? []).map((c) => ({
+      address: c.owner?.address ?? "",
+      coinType: c.coinType?.repr ?? "",
+      amount: String(c.amount ?? "0"),
+    })),
   }));
   const transfers = extractUsdcTransfers(txs);
   backfillCache.set(address.toLowerCase(), { at: Date.now(), transfers });
@@ -97,7 +110,7 @@ export async function backfillTransfersForAddress(address: string, limit = 25): 
 /* ------------------------------ Check + match ------------------------------ */
 
 export interface CheckResult {
-  mode: "tatum" | "unconfigured";
+  mode: "tatum" | "indexer";
   settled: { settlementId: string; digest: string; simulated: boolean }[];
   checkedTransfers: number;
 }
@@ -108,13 +121,13 @@ export function checkHouseholdSettlements(householdId: string, extraTransfers: O
   if (checkInFlight) return checkInFlight;
   checkInFlight = (async () => {
     const pending = getPendingSettlements(householdId);
-    if (pending.length === 0) return { mode: tatumConfigured() ? "tatum" : "unconfigured", settled: [], checkedTransfers: 0 } as CheckResult;
+    if (pending.length === 0) return { mode: tatumConfigured() ? "tatum" : "indexer", settled: [], checkedTransfers: 0 } as CheckResult;
 
     const members = getMembers(householdId);
     const addressByMemberId = new Map(members.map((m) => [m.id, m.suiAddress]));
     const transfers: ObservedTransfer[] = [...extraTransfers];
 
-    if (tatumConfigured()) {
+    {
       const creditorAddresses = [...new Set(pending.map((s) => addressByMemberId.get(s.toMemberId)).filter(Boolean))] as string[];
       for (const address of creditorAddresses) {
         try {
@@ -147,7 +160,7 @@ export function checkHouseholdSettlements(householdId: string, extraTransfers: O
         });
       }
     }
-    return { mode: tatumConfigured() ? "tatum" : "unconfigured", settled, checkedTransfers: transfers.length } as CheckResult;
+    return { mode: tatumConfigured() ? "tatum" : "indexer", settled, checkedTransfers: transfers.length } as CheckResult;
   })().finally(() => {
     checkInFlight = null;
   });
