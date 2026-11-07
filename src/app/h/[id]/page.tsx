@@ -304,6 +304,7 @@ export default function HouseholdPage() {
       <header className="topbar">
         <a href="/" aria-label="Evenly home"><Logo /></a>
         <span className="hh-name">{household.name}</span>
+        {household.name.toLowerCase().includes("simulated") && <span className="tag amber">Simulated</span>}
         <span className="avatars" aria-label={`${activeMembers.length} members`}>
           {activeMembers.slice(0, 5).map((m) => (
             <span key={m.id} className="avatar" style={{ background: avatarColor(m.name) }} title={m.name}>{initials(m.name)}</span>

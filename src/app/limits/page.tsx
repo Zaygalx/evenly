@@ -37,6 +37,15 @@ export default function LimitsPage() {
       </section>
 
       <section className="card">
+        <h2>Simulated households</h2>
+        <ul className="clean">
+          <li>Four households in this app are labelled Simulated, in their name and with a badge. Agent members with hidden split rules log purchases and judge proposals, so we can measure whether Evenly learns.</li>
+          <li>Simulated households are real households in every technical sense. Their memories are on Walrus Mainnet and their proposals come from the same recall as yours. Only the people are agents.</li>
+          <li>Results are reported separately in the simulation report and are never merged with real household data. Settlement tests use throwaway wallets and tiny amounts.</li>
+        </ul>
+      </section>
+
+      <section className="card">
         <h2>Money safety</h2>
         <ul className="clean">
           <li>Evenly never asks for a private key or seed phrase, in the app or in chat.</li>

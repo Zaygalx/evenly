@@ -123,3 +123,13 @@ See the in-app `/limits` page.
 - `docs/demo-script.md` — the 90-second demo, timed
 - `docs/x-post.md` — launch post draft
 - `docs/submission-checklist.md` — final submission checklist with evidence links
+
+## Simulated households
+
+Four households in the live app are clearly labelled **Simulated** (badge in the app,
+"Simulated Household" in the name). They are driven by the harness in `sim/`:
+agent members with hidden split rules log realistic purchases through the public
+API, then accept or correct each proposal. Proposals come only from Walrus Memory
+recall, so the acceptance rates in `sim/REPORT.md` are measured, never scripted.
+Simulated data is reported separately and is never merged with real households.
+Settlement tests for simulated households use throwaway wallets with tiny amounts.
