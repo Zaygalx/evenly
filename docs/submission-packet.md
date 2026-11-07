@@ -59,3 +59,33 @@ Nothing outstanding. The Tatum account ID came from the user. The Walrus
 delegate public key and address were read from the on chain MemWal account.
 The blog is published and the video is on the v1.0.0 release. The only
 pending link is the X post URL, which depends on the user's manual post.
+
+## The actual form (verified on the official page, 7 Nov 2026)
+
+Form: https://recall-tatum-walrus.vercel.app (the Submit Project dialog on
+https://tatum.io/hackathon/total-recall). No sign in needed on the form
+itself. Deadline 10 Nov 2026, 17:00 UTC, confirmed on the page.
+
+Fields, in order:
+- Email (required), Discord handle (required), LinkedIn (optional),
+  "Is this your first Web3 project?" (required, Yes or No)
+- Tatum ID (required): 6aeef5b646ca44fe36bd2eb2
+- SUI address (required): the wallet that owns the Walrus Memory account,
+  0xecb0857c5c4073d321c2ab843ad51d3a6327fa0d1a1062ad0f23af5f8cbed826
+- Account ID (SUI) (required): 0x68c4abd3ae1bf69f625cec09533419e330f1625e696e814babe3f84b3987d4b9
+- MEMWAL_AGENT_ID (required): the delegate public key, hex
+  47543c7bb5bce2627d18b6792a427031540b997848d3f652ac78114a80e32e3d
+- Project description (required): the packet description above, with the
+  live app and blog URLs inside it, since the form has no separate fields
+  for them
+- Short demo video, labelled 2 to 3 min (required): the release URL above.
+  Note the current cut is 62 seconds, under the stated range.
+- GitHub repo (required): https://github.com/Zaygalx/evenly
+- "How was your experience building with Walrus?" (required)
+- "How was your experience building with the Tatum AI Builder?" (required).
+  Honest answer: the AI Builder was not used; Tatum was integrated
+  directly through its API, gRPC checkpoint stream and gateway.
+- "How did you hear about this event?" (optional)
+- Bonus: X post URL textbox plus a checkbox for having shared on X
+  tagging @Tatum_io and @WalrusFoundation (optional)
+- Agreement checkbox: 18+ and agree to the Event Rules and terms
