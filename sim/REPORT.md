@@ -244,3 +244,94 @@ The only true costs were the swap fee and the gas burned by the transfers.
 5. The settlement backfill used the retired JSON-RPC transaction query
    (the gateway answers HTTP 404). Fixed: backfill now reads the public
    Sui GraphQL indexer; the Tatum checkpoint stream remains the live layer.
+
+## Extension: noise and preference drift
+
+A separate extension run in its own namespace, reported apart from the
+four households above and never merged with them or with real households.
+
+Household: Agent test household 5, Drift Flat
+Household id: 77fa9ae5-1fc4-4788-a795-ff01754b43bc
+Walrus namespace: evenly-hh-77fa9ae5-1fc4-4788-a795-ff01754b43bc
+Members: Tobi, Aisha (automated agents)
+Memories on Walrus in this namespace: 61
+
+Noise: on about 10 percent of proposals an agent would otherwise accept,
+it overrode the split for that one purchase only, a one-off treat. A
+correction teaches a rule in Evenly, so an override can disturb the next
+proposal in that category, and the recovery from that is measured too.
+Preference drift: the hidden groceries rule changed from Tobi 50, Aisha 50
+to Tobi 70, Aisha 30 at the start of day 3. The app was not told. It only
+saw the corrections that followed.
+No USDC settlements were run for this household.
+
+Day 1: 6 purchases, 6 accepted without correction, acceptance rate 100%, 0 rule corrections, 0 noise overrides
+Day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%, 0 rule corrections, 0 noise overrides
+Day 3: 6 purchases, 5 accepted without correction, acceptance rate 83%, 1 rule correction, 0 noise overrides
+Day 4: 6 purchases, 5 accepted without correction, acceptance rate 83%, 0 rule corrections, 1 noise override
+
+Relearning after the drift: 1 groceries correction(s) after day 3 began before a groceries proposal was accepted again.
+Total noise overrides in this run: 1 of 24 purchases.
+
+Blob ids in this namespace:
+- acceptance: LA0HKAeH_AJQCgMAanHNvU6J5XZECx0ySi2VFJzl7w0
+- acceptance: WTDDstDo9bq21uiaeyHYi8ua9V9OBn48xBr1AgDlPHI
+- acceptance: 78vrOVt7ZUxsyeX13nKgNg7OsjXMVYPKhTrNDQEtfq0
+- acceptance: hk3WY-JYiXXJ0DTrJiLxpdNk-84yKayfwmMlb8cce04
+- acceptance: b4GSI8NwJMO7RpgCRa_WD-UHW2R5qKwkrY1TggoEgKU
+- acceptance: NV3e4jEvKB2cFeQtAcP_WXJVlx-R2wIBzS-m0OgAEmQ
+- acceptance: 3TFhuCI4RZnDMpNCQdDF_JvwPNnV-zB67DhmGNqckuw
+- acceptance: 6sgp27HffWVMdOdOzjO69rQ7VrQadX8I9ATf53S0sgs
+- acceptance: wTb3XUft-nnig5wIWhbUoHueSasmwK5FN-B1QdAMF2M
+- acceptance: PoD5fm-kn5ZrVJG-8rR-Y6Q8oUD-vjeYu7ps2SP51y4
+- acceptance: zQSKJWkM69GTVDiiTH0aqtGHGgF1Kqk5_ArTt3_epls
+- acceptance: U6qDv5fkQ9O2tOZNVg0tv-JUBkCXvYafxSe5yl5yw-w
+- correction: NPB131dFNQ8TVoHI20iC0-By3Fz8zP5C86kKqGmEZ6A
+- acceptance: Cyv6oMdzwrfJzP2gx7jMmiS_daGCwo48_twzmgzDYfI
+- acceptance: Pri-gJL2nbLzkv6O5bHkjdtyGRWdKGKH4u2OQzWI4yc
+- acceptance: oYKxp7hhHOaOQSG_ZsA7F8t77FqIVsRMlCYe7RjFAHw
+- acceptance: 6zzrRuE6CjwNOApy1TYXyMPFrhXX2gpis-flfO46eVs
+- acceptance: QrlWIZ4dyeWqmx_sk8IZsHhkmUrkjlv03eD5-L1MNWA
+- acceptance: oy5dy__6a8-X-TUT6tyxQWrB8PZoHkIo7DNYzxXUXnI
+- acceptance: kx_XDU6CeVk4ZIGzIDkUKhH823XdxNLmEQ0FuUKiF_0
+- acceptance: uwe7kZglaQQPyAek8p-CDNmp9msNUqTUXfMLZmFjF-o
+- acceptance: x6tmPDra69trMUdqGE0aDNfEUyWZZLv_bKA4GyMtccs
+- rule: l3NKwY6Mj6a1LLTqu3ZXwkGujj-kZeOhv6_lR5wM0GQ
+- acceptance: SwpTIY5vus7ACzRMaGtLX2htiFuRMgs7XwQgyMEJkug
+- rule: 9Y_lKZbsc8mI4mIlVsxtGTwXWrOn7O3uw2wUPIeCrzQ
+- rule: GdvwR9iE_szaDLGB5vLoZYykG0onkvuYPO-I1smLHao
+- rule: qAkcuanqMdyuGHdsXTJiC9tI5L72STado0-k-LA8n9M
+- rule: a2MVbI3r-wkK_Tt7nu1x4z0QbwdccMNhPlE8l45zHDU
+- rule: ru0t5fB301xUWdP-lreGqBmF5NultBPy_uAdzG2OHtU
+- correction: 5pPDkB6XcJyif2z9LBDbN64A0VvVInPRInx_2EkEA5k
+- expense: 33DU4-EsHoWi5s3n0j1vna4I1WdfL0Dxg9G7atjNvJc
+- expense: 4V9m6ko116n9u7HqrCnw5N6FskSx1oQVJCNJs2YiV3I
+- expense: D0nPbBMglEgCgJV0u0BCjq8G4VHR_WOjQgTUk4Ck4EA
+- expense: kGwHy6AFk44RvGX26TdEhSIoKb0W_IWHNEtnpEumArw
+- expense: TgV0J5yZKSQlt5EHDIUVtO1cO3SlyZfsPv4bL5VgdJg
+- expense: iiEpfEC4iecXEwRE0HwDVt86ocMlmib60nXavvDAPrM
+- expense: 32JAIQ5_DjJBIem9Ukb_kbJ3aPR6n7XjLXqjYMlDiqw
+- rule: XXd_KNZ9Oe9OyinynG8dEuZBYwqTfXOmp4_8ERaH-k4
+- expense: H7PsREFfmrh6qD5gznEHVr6jPp8Yl8NqEIwXt5Hw8PM
+- rule: IgQqB7U_IuqrsAfB4O5pHj3kPXNy_jzHoRSl-vzSzgY
+- expense: 1xqjVTxO4b_oq7gckfUiZ4cA0jk8psrmfY34zsYLN9s
+- expense: 0HEtpxR3uFC1JSjpoT17qQZ0bOIaeUbE0uaMBU-uDQg
+- expense: efvAkMuQEE_qEpKFFACEhJ9Voe4vYe9uEM0trQuQ-94
+- expense: afLI-cQCCNic-382-ueHLT6N25zNj-SO9AUr0I6nPyQ
+- expense: RH--2Jj7C40HKxizoXl1mEpA7MR5dP2HS5WiPbjwb08
+- rule: HSmZNg4OovHTZl0dUJC2xvgBsDHhrX_NxwFxGNzsVMY
+- expense: jD8iqk-kB6-aQXqbs5bIIe88m2PYZOP6IivUQyWWhRQ
+- expense: QQDNtQ0rypCwgNmRfE-bgVprF2Zr28A0nYBkU7k6eKc
+- expense: Hx1WYXjGtSZpcJTz6Z811HPdcSQqZBnYw7ia7yMNA7U
+- expense: whuTQX86GaAagS_MLFoYNmKTt5NtO4aBJ_QVAiJSnPQ
+- expense: e22Ohih-U5vq67jE6B8sx5CgLfG8SueungI_q4Swcv0
+- expense: xHSlfiPHBstskqC9t3jWwr21bmmFxSF44fCEzWzIl5Y
+- member: 4T9Gf08lxMa98bxP6V1yFJu07erBWevawLIOSYY13D8
+- expense: 9h4MNsY1FVVi_4B3wH75JX5HIKrTY-DCtK53i4yTqjc
+- expense: IOHRvQMetTnT0UgpcNEBkku11BNqbKenF6YCMQsbZvQ
+- expense: fWJcmdB3Qv4zzS1Z0UdscsAoyIgMcGqTJaTQObL--oA
+- expense: o5U-dxne_-Ih063uwBrWjukaBYG0GRZCCnYEMcvHYP4
+- expense: v3tYyxkOq52rSd5In2yvlX_LzRA8s_NwTf-E2t_rCUc
+- household: MojImOed8Z66sUohTMXkLpAlmCLQVA4U5ygH8kRbFw4
+- household: MGwTrDBvpG-acsBvlqcAPvFc3xqPGyhz4fmgKmEPGS4
+- member: P4tLE3IrmdLufFC3WXtWOLA0S3snA9akaZM8ukhEA2M

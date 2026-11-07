@@ -551,7 +551,7 @@ async function reportExtension() {
     const acc = da.filter((a) => a.action === "accept").length;
     const corr = da.filter((a) => a.action === "correct" && a.note !== "noise-override").length;
     const noise = da.filter((a) => a.note === "noise-override").length;
-    lines.push(`Day ${d + 1}: ${da.length} purchases, ${acc} accepted without correction, acceptance rate ${da.length ? Math.round((acc / da.length) * 100) : 0}%, ${corr} rule corrections, ${noise} noise overrides`);
+    lines.push(`Day ${d + 1}: ${da.length} purchases, ${acc} accepted without correction, acceptance rate ${da.length ? Math.round((acc / da.length) * 100) : 0}%, ${corr} rule correction${corr === 1 ? "" : "s"}, ${noise} noise override${noise === 1 ? "" : "s"}`);
   }
   const driftDay = persona.drift!.fromDayIndex;
   const postDriftGroceries = acts.filter((a) => a.day >= driftDay && a.category === "groceries");
