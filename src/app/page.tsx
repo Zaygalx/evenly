@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/Logo";
 
 export default function HomePage() {
   const router = useRouter();
@@ -37,9 +38,10 @@ export default function HomePage() {
 
   return (
     <main>
-      <h1>Evenly</h1>
+      <div className="brandbar"><Logo /><a href="/limits" className="muted small">Honest limits</a></div>
+      <h1>Shared money, minus the awkward maths</h1>
       <p className="lede">
-        Shared money for couples and roommates. Log a purchase in one line — Evenly learns how
+        Shared money for couples and roommates. Log a purchase in one line. Evenly learns how
         your household splits things, so you never explain a split twice.
       </p>
 
@@ -50,10 +52,10 @@ export default function HomePage() {
         <input id="hh-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ada & Ben's flat" required />
         <label htmlFor="hh-currency">Currency you log in</label>
         <select id="hh-currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-          <option value="NGN">NGN — Nigerian naira</option>
-          <option value="USD">USD — US dollar</option>
-          <option value="EUR">EUR — Euro</option>
-          <option value="GBP">GBP — British pound</option>
+          <option value="NGN">NGN, Nigerian naira</option>
+          <option value="USD">USD, US dollar</option>
+          <option value="EUR">EUR, Euro</option>
+          <option value="GBP">GBP, British pound</option>
         </select>
         <label htmlFor="me-name">Your name</label>
         <input id="me-name" value={creatorName} onChange={(e) => setCreatorName(e.target.value)} placeholder="Ada" autoComplete="name" required />
@@ -66,14 +68,14 @@ export default function HomePage() {
       <div className="card">
         <h2>How it works</h2>
         <ul className="clean">
-          <li><strong>1. Log in one line.</strong> <span className="muted">“groceries 12000 paid by Ada” — that's the whole form.</span></li>
+          <li><strong>1. Log in one line.</strong> <span className="muted">Try “groceries 12000 paid by Ada”. That is the whole form.</span></li>
           <li><strong>2. Evenly proposes the split</strong> <span className="muted">from what it remembers about your household, and shows its working.</span></li>
           <li><strong>3. Settle in USDC on Sui.</strong> <span className="muted">The app watches the chain and flips to Settled live.</span></li>
         </ul>
       </div>
 
       <p className="muted small">
-        Hackathon build (Total Recall — Tatum × Walrus Memory). Memory, live settlement,
+        Hackathon build for Total Recall, by Tatum and Walrus Memory. Memory, live settlement,
         delegate-key ownership and the restart proof are all built in; anything simulated
         is labelled. See <a href="/limits">honest limits</a>.
       </p>

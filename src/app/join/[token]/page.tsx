@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/Logo";
 import { useParams, useRouter } from "next/navigation";
 import type { Household, Member } from "@/lib/types";
 
@@ -56,6 +57,7 @@ export default function JoinPage() {
   if (error && !household) {
     return (
       <main>
+      <div className="brandbar"><Logo /><a href="/" className="muted small">Home</a></div>
         <h1>Invite not found</h1>
         <div className="notice error" role="alert">{error}</div>
         <p><a href="/">Go to Evenly</a></p>

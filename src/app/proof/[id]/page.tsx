@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Logo } from "@/components/Logo";
 import { useParams } from "next/navigation";
 
 interface Report {
@@ -35,9 +36,10 @@ export default function ProofPage() {
 
   return (
     <main>
+      <div className="brandbar"><Logo /><a href="/" className="muted small">Home</a></div>
       <h1>Restart proof</h1>
       <p className="lede">
-        Walrus Memory is the source of truth — this app's local state is only a cache.
+        Walrus Memory is the source of truth. This app local state is only a cache.
         This page proves it: it drains every queued memory write, <strong>wipes all local state</strong>,
         then rebuilds the household purely from its memories.
       </p>
@@ -46,7 +48,7 @@ export default function ProofPage() {
         <h2>Run the proof</h2>
         <p className="muted small">
           Warning: this really does delete the local cache first. If the memories are not there,
-          the household does not come back — that's the point of the proof.
+          the household does not come back. That is the point of the proof.
         </p>
         {error && <div className="notice error" role="alert">{error}</div>}
         <button className="primary" onClick={() => void run()} disabled={running}>
@@ -56,7 +58,7 @@ export default function ProofPage() {
 
       {report && (
         <div className="card" aria-label="Rebuild report">
-          <h2>Result — storage mode: {report.mode === "walrus" ? "Walrus Memory (Mainnet)" : "SIMULATED local memory"}</h2>
+          <h2>Result, storage mode: {report.mode === "walrus" ? "Walrus Memory (Mainnet)" : "SIMULATED local memory"}</h2>
           <ul className="clean">
             <li className="row"><span>Memories found in namespace</span><span className="amount">{report.memoriesFound}</span></li>
             <li className="row"><span>Members before → after</span><span className="amount">{report.before.members} → {report.after.members}</span></li>
