@@ -530,6 +530,114 @@
       "category": "household",
       "action": "accept",
       "deviation": 0.03
+    },
+    {
+      "key": "4:0:0",
+      "household": 4,
+      "day": 0,
+      "line": "groceries 3800 paid by Tobi",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:0:1",
+      "household": 4,
+      "day": 0,
+      "line": "electricity 2600 paid by Aisha",
+      "category": "utilities",
+      "action": "accept",
+      "deviation": 0.1
+    },
+    {
+      "key": "4:0:2",
+      "household": 4,
+      "day": 0,
+      "line": "groceries 2950 paid by Aisha",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:0:3",
+      "household": 4,
+      "day": 0,
+      "line": "movie tickets 4000 paid by Tobi",
+      "category": "fun",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:0:4",
+      "household": 4,
+      "day": 0,
+      "line": "detergent 1500 paid by Aisha",
+      "category": "household",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:0:5",
+      "household": 4,
+      "day": 0,
+      "line": "electricity 3100 paid by Tobi",
+      "category": "utilities",
+      "action": "accept",
+      "deviation": 0.1
+    },
+    {
+      "key": "4:1:0",
+      "household": 4,
+      "day": 1,
+      "line": "groceries 4600 paid by Aisha",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:1:1",
+      "household": 4,
+      "day": 1,
+      "line": "netflix 4500 paid by Tobi",
+      "category": "fun",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:1:2",
+      "household": 4,
+      "day": 1,
+      "line": "electricity 2800 paid by Aisha",
+      "category": "utilities",
+      "action": "accept",
+      "deviation": 0.1
+    },
+    {
+      "key": "4:1:3",
+      "household": 4,
+      "day": 1,
+      "line": "groceries 3300 paid by Tobi",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:1:4",
+      "household": 4,
+      "day": 1,
+      "line": "detergent 1750 paid by Tobi",
+      "category": "household",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:1:5",
+      "household": 4,
+      "day": 1,
+      "line": "movie tickets 5200 paid by Aisha",
+      "category": "fun",
+      "action": "accept",
+      "deviation": 0
     }
   ],
   "settlements": [
