@@ -638,6 +638,60 @@
       "category": "fun",
       "action": "accept",
       "deviation": 0
+    },
+    {
+      "key": "4:2:0",
+      "household": 4,
+      "day": 2,
+      "line": "groceries 4100 paid by Tobi",
+      "category": "groceries",
+      "action": "correct",
+      "deviation": 0.2
+    },
+    {
+      "key": "4:2:1",
+      "household": 4,
+      "day": 2,
+      "line": "electricity 2950 paid by Aisha",
+      "category": "utilities",
+      "action": "accept",
+      "deviation": 0.1
+    },
+    {
+      "key": "4:2:2",
+      "household": 4,
+      "day": 2,
+      "line": "groceries 3600 paid by Aisha",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0.02
+    },
+    {
+      "key": "4:2:3",
+      "household": 4,
+      "day": 2,
+      "line": "netflix 4500 paid by Aisha",
+      "category": "fun",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "4:2:4",
+      "household": 4,
+      "day": 2,
+      "line": "groceries 2750 paid by Tobi",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0.02
+    },
+    {
+      "key": "4:2:5",
+      "household": 4,
+      "day": 2,
+      "line": "detergent 1600 paid by Aisha",
+      "category": "household",
+      "action": "accept",
+      "deviation": 0
     }
   ],
   "settlements": [
