@@ -189,6 +189,60 @@
       "category": "health",
       "action": "accept",
       "deviation": 0
+    },
+    {
+      "key": "1:0:0",
+      "household": 1,
+      "day": 0,
+      "line": "groceries 6900 paid by Funmi",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0.01
+    },
+    {
+      "key": "1:0:1",
+      "household": 1,
+      "day": 0,
+      "line": "pizza 5400 paid by Tunde",
+      "category": "dining",
+      "action": "accept",
+      "deviation": 0.07
+    },
+    {
+      "key": "1:0:2",
+      "household": 1,
+      "day": 0,
+      "line": "uber 2300 paid by Sara",
+      "category": "transport",
+      "action": "correct",
+      "deviation": 0.17
+    },
+    {
+      "key": "1:0:3",
+      "household": 1,
+      "day": 0,
+      "line": "groceries 4800 paid by Tunde",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0.01
+    },
+    {
+      "key": "1:0:4",
+      "household": 1,
+      "day": 0,
+      "line": "lunch 3600 paid by Funmi",
+      "category": "dining",
+      "action": "accept",
+      "deviation": 0.07
+    },
+    {
+      "key": "1:0:5",
+      "household": 1,
+      "day": 0,
+      "line": "bolt 1900 paid by Funmi",
+      "category": "transport",
+      "action": "accept",
+      "deviation": 0.01
     }
   ],
   "settlements": []
