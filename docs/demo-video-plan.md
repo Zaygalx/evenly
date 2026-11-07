@@ -121,3 +121,29 @@ Partly, and here is the honest split:
 - Recommended path: you shoot the kitchen beats and the screen captures
   (plan above), Muse builds everything else and assembles a first full
   cut for your approval. Nothing renders until you approve this plan.
+
+## Addendum: two fact cards for the render (added during production)
+
+The Settle scene in the rendered cut is a designed fact card, not app
+footage: a real detected settlement, Chidi to Adaeze 0.37 USDC, digest
+B3eqxfhVy5STuvnKTYLfh3xkrpxHoZjMgsFnYFb5KkMo, 6 of 6 settlements detected
+through Tatum. The restart proof scene is also a fact card with the live
+verification numbers from 7 Nov 2026: storage mode Walrus Memory (Mainnet),
+memories found 40, expenses 12 before and 12 after, settlements 1 and 1,
+balances identical after rebuild. Both cards are statements of verified
+facts, labelled as verified on the live site.
+
+## Production note, v1 render (7 Nov 2026)
+
+Built and rendered by Muse after the user approved: evenly-demo-v1,
+62 seconds, 1080p. Structure follows this plan with two deviations, both
+honest ones. The plan targeted 75 to 90 seconds; the voiceover timed at
+62 seconds total, and the cut was kept tight rather than padded. And the
+household footage comes from the production build running locally with a
+demo household, because live site capture to files is blocked from the
+build machine; those shots carry an on screen label, and the settlement
+and restart proof beats are fact cards with the verified live numbers
+rather than footage. Replacing the demo shots with phone captures from
+the live site (capture plan above) is a drop in edit. A soft synthesized
+pad sits under the voiceover instead of licensed music in v1; the music
+sources above remain the plan for the final cut.
