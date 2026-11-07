@@ -26,6 +26,9 @@
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+const execFileAsync = promisify(execFile);
 import { join } from "node:path";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
@@ -272,14 +275,24 @@ function parseWeights(text: string): Record<string, number> {
   return out;
 }
 
-/** POST with a long held connection: if the client disconnects early the
- *  platform cancels the invocation before the work lands. The response can
- *  still be dropped at the very end, so never throw: callers verify effects
- *  through memories. */
+/** POST via curl. From this machine, node fetch long lived connections to
+ *  the deployment are dropped by the network path again and again, and an
+ *  early disconnect cancels the server invocation before its work lands;
+ *  curl connections survive the same routes reliably (every manual post
+ *  landed). Never throw: callers verify effects through memories. */
 async function firePost(path: string, body?: unknown): Promise<any> {
   await pace();
   lastPostAt = Date.now();
-  return api(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }, 570000).catch(() => null);
+  try {
+    const { stdout } = await execFileAsync("curl", [
+      "-s", "--max-time", "560", "-X", "POST", `${API}${path}`,
+      "-H", "content-type: application/json",
+      ...(body === undefined ? [] : ["-d", JSON.stringify(body)]),
+    ], { timeout: 580000, maxBuffer: 4 * 1024 * 1024 });
+    try { return JSON.parse(stdout); } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 async function cycle(hhIndex: number, dayIndex: number) {
