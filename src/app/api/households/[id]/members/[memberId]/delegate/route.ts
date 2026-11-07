@@ -49,7 +49,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string; m
 export async function PATCH(_req: Request, ctx: { params: Promise<{ id: string; memberId: string }> }) {
   const { id, memberId } = await ctx.params;
   if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
-  const member = getMember(memberId);
+  let member = getMember(memberId);
+  if (!member && (await ensureMember(id, memberId))) member = getMember(memberId);
   if (!member || member.householdId !== id || !member.delegate) {
     return NextResponse.json({ error: "No delegate key to activate for this member." }, { status: 404 });
   }
