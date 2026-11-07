@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { addExpense, getHousehold, getMembers } from "@/lib/store";
 import { parseExpenseLine } from "@/lib/parser";
-import { recallRecords, rememberRecord } from "@/lib/memory/client";
+import { recallRecords } from "@/lib/memory/client";
+import { rememberInBackground } from "@/lib/memory/background";
 import { serializeMemory, type MemoryRecord } from "@/lib/memory/serialize";
 import { proposeSplit, sharesToWeights } from "@/lib/splitEngine";
 import { weightsToString } from "@/lib/memory/serialize";
@@ -67,7 +68,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   // The expense itself becomes a memory (write-through for the restart proof).
   const payer = members.find((m) => m.id === parsed.paidByMemberId);
-  void rememberRecord({
+  rememberInBackground([{
     kind: "expense",
     householdId: id,
     fields: {
@@ -81,7 +82,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       createdAt: expense.createdAt,
       raw: text,
     },
-  });
+  }]);
 
   return NextResponse.json({ expense, parsed }, { status: 201 });
 }
+
+// Memory writes continue after the response via after(); give them room to land.
+export const maxDuration = 60;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { DELEGATE_REVOKE_LAG_MS, getHousehold, getMember, revokeMember } from "@/lib/store";
-import { rememberRecord } from "@/lib/memory/client";
+import { rememberInBackground } from "@/lib/memory/background";
 
 /**
  * Revoke a member: they stop splitting new expenses immediately in the app,
@@ -18,11 +18,11 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string; m
   const member = getMember(memberId);
   if (!member || member.householdId !== id) return NextResponse.json({ error: "Member not found." }, { status: 404 });
   const updated = revokeMember(memberId);
-  void rememberRecord({
+  rememberInBackground([{
     kind: "settlement_habit",
     householdId: id,
     fields: { category: "any", note: `Member ${member.name} was revoked at ${new Date().toISOString()}; delegate removal can lag ~30s (verification caching).` },
-  });
+  }]);
   return NextResponse.json({
     member: updated,
     delegateStatus: updated?.delegate ? "revoking" : "none",
@@ -32,3 +32,6 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string; m
       : "Member revoked. They had no delegate key, so there is no memory access to wind down.",
   });
 }
+
+// Memory writes continue after the response via after(); give them room to land.
+export const maxDuration = 60;

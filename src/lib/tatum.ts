@@ -132,7 +132,7 @@ export function checkHouseholdSettlements(householdId: string, extraTransfers: O
       settled.push({ settlementId: match.settlementId, digest: match.digest, simulated });
       const s = pending.find((p) => p.id === match.settlementId);
       if (s) {
-        void rememberRecord({
+        await rememberRecord({
           kind: "settlement",
           householdId,
           fields: {

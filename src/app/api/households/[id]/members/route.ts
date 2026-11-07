@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { addMember, getHousehold, getMembers, isValidSuiAddress } from "@/lib/store";
-import { rememberRecord } from "@/lib/memory/client";
+import { rememberInBackground } from "@/lib/memory/background";
 
 const MAX_MEMBERS = 20; // matches the Walrus Memory delegate-key cap designed for Phase 4
 
@@ -23,6 +23,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: "That Sui address looks wrong. It should be 0x followed by 64 hex characters." }, { status: 400 });
   }
   const member = addMember(id, name, suiAddress);
-  void rememberRecord({ kind: "member", householdId: id, fields: { name: member.name, sui: member.suiAddress, member: member.id } });
+  rememberInBackground([{ kind: "member", householdId: id, fields: { name: member.name, sui: member.suiAddress, member: member.id } }]);
   return NextResponse.json({ member }, { status: 201 });
 }
+
+// Memory writes continue after the response via after(); give them room to land.
+export const maxDuration = 60;

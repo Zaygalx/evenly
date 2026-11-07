@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getExpense, getHousehold, getMembers, recordDecision, setExpenseShares } from "@/lib/store";
-import { rememberRecord } from "@/lib/memory/client";
+import { rememberInBackground } from "@/lib/memory/background";
 import { sharesToWeights } from "@/lib/splitEngine";
 import { weightsToString } from "@/lib/memory/serialize";
 
@@ -35,16 +35,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ex
     recordDecision(id, expenseId, "accepted", false);
     if (household.memoryEnabled) {
       const weights = weightsToString(sharesToWeights(expense.shares, members));
-      void rememberRecord({
-        kind: "acceptance",
-        householdId: id,
-        fields: { expense: expenseId, category: expense.category, weights },
-      });
-      void rememberRecord({
-        kind: "rule",
-        householdId: id,
-        fields: { category: expense.category, weights, source: "acceptance" },
-      });
+      rememberInBackground([
+        { kind: "acceptance", householdId: id, fields: { expense: expenseId, category: expense.category, weights } },
+        { kind: "rule", householdId: id, fields: { category: expense.category, weights, source: "acceptance" } },
+      ]);
     }
     return NextResponse.json({ expense: getExpense(expenseId) });
   }
@@ -63,19 +57,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ex
     recordDecision(id, expenseId, "corrected", true);
     if (household.memoryEnabled) {
       const weights = weightsToString(sharesToWeights(shares, members));
-      void rememberRecord({
-        kind: "correction",
-        householdId: id,
-        fields: { expense: expenseId, category: expense.category, weights },
-      });
-      void rememberRecord({
-        kind: "rule",
-        householdId: id,
-        fields: { category: expense.category, weights, source: "correction" },
-      });
+      rememberInBackground([
+        { kind: "correction", householdId: id, fields: { expense: expenseId, category: expense.category, weights } },
+        { kind: "rule", householdId: id, fields: { category: expense.category, weights, source: "correction" } },
+      ]);
     }
     return NextResponse.json({ expense: getExpense(expenseId) });
   }
 
   return NextResponse.json({ error: "Action must be \"accept\" or \"correct\"." }, { status: 400 });
 }
+
+// Memory writes continue after the response via after(); give them room to land.
+export const maxDuration = 60;

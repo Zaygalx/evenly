@@ -225,6 +225,7 @@ export function rememberRecord(record: MemoryRecord): Promise<{ blobId: string }
   return promise;
 }
 
+
 export async function recallRecords(householdId: string, query: string, topK = 25): Promise<{ record: MemoryRecord; blobId: string; createdAt?: string }[]> {
   const backend = getMemoryBackend();
   const hits = await backend.recall(query, householdNamespace(householdId), topK);
