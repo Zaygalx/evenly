@@ -405,6 +405,60 @@
       "category": "health",
       "action": "accept",
       "deviation": 0
+    },
+    {
+      "key": "3:0:0",
+      "household": 3,
+      "day": 0,
+      "line": "groceries 5800 paid by Ngozi",
+      "category": "groceries",
+      "action": "correct",
+      "deviation": 0.13
+    },
+    {
+      "key": "3:0:1",
+      "household": 3,
+      "day": 0,
+      "line": "cinema 6600 paid by Emeka",
+      "category": "fun",
+      "action": "accept",
+      "deviation": 0.01
+    },
+    {
+      "key": "3:0:2",
+      "household": 3,
+      "day": 0,
+      "line": "cleaning supplies 2400 paid by Yetunde",
+      "category": "household",
+      "action": "correct",
+      "deviation": 0.27
+    },
+    {
+      "key": "3:0:3",
+      "household": 3,
+      "day": 0,
+      "line": "groceries 4900 paid by Emeka",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0.02
+    },
+    {
+      "key": "3:0:4",
+      "household": 3,
+      "day": 0,
+      "line": "movie night 4200 paid by Ngozi",
+      "category": "fun",
+      "action": "accept",
+      "deviation": 0.01
+    },
+    {
+      "key": "3:0:5",
+      "household": 3,
+      "day": 0,
+      "line": "toiletries 2700 paid by Ngozi",
+      "category": "household",
+      "action": "accept",
+      "deviation": 0.03
     }
   ],
   "settlements": []
