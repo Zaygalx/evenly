@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { addExpense, getHousehold, getMembers } from "@/lib/store";
 import { parseExpenseLine } from "@/lib/parser";
+import { recallRecords, rememberRecord } from "@/lib/memory/client";
+import { serializeMemory, type MemoryRecord } from "@/lib/memory/serialize";
+import { proposeSplit } from "@/lib/splitEngine";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!getHousehold(id)) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  const household = getHousehold(id);
+  if (!household) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   let body: { text?: string };
   try {
     body = await req.json();
@@ -21,6 +25,30 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!parsed.ok || parsed.amountMinor === null || !parsed.paidByMemberId) {
     return NextResponse.json({ error: parsed.errors.join(" ") || "Could not read that line.", parsed }, { status: 422 });
   }
+
+  // Phase 2: recall the household's memories and let the split engine propose.
+  let memories: { record: MemoryRecord; blobId: string; text: string }[] = [];
+  if (household.memoryEnabled) {
+    try {
+      const recalled = await recallRecords(id, `split rule correction ${parsed.category} ${parsed.description}`, 25);
+      memories = recalled.map((r) => ({
+        record: r.record,
+        blobId: r.blobId,
+        text: serializeMemory(r.record),
+      }));
+    } catch (err) {
+      console.error("[evenly] recall failed, falling back to equal split:", err);
+    }
+  }
+
+  const proposal = proposeSplit({
+    amountMinor: parsed.amountMinor,
+    category: parsed.category,
+    members,
+    memories,
+    memoryEnabled: household.memoryEnabled,
+  });
+
   const expense = addExpense({
     householdId: id,
     rawText: text,
@@ -28,6 +56,28 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     category: parsed.category,
     amountMinor: parsed.amountMinor,
     paidByMemberId: parsed.paidByMemberId,
+    shares: proposal.shares,
+    proposal: {
+      explanation: proposal.explanation,
+      usedMemories: proposal.usedMemories,
+      memoryApplied: proposal.memoryApplied,
+    },
   });
+
+  // The expense itself becomes a memory (write-through for the restart proof).
+  const payer = members.find((m) => m.id === parsed.paidByMemberId);
+  void rememberRecord({
+    kind: "expense",
+    householdId: id,
+    fields: {
+      expense: expense.id,
+      description: parsed.description,
+      category: parsed.category,
+      amountMinor: String(parsed.amountMinor),
+      payer: payer?.name ?? "",
+      raw: text,
+    },
+  });
+
   return NextResponse.json({ expense, parsed }, { status: 201 });
 }

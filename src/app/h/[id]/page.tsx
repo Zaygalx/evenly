@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import type { Balance, Expense, Household, Member } from "@/lib/types";
+import type { Balance, DecisionEvent, Expense, Household, Member, Settlement } from "@/lib/types";
 import { formatMinor } from "@/lib/money";
+import { explorerLinkForBlob } from "@/lib/explorer";
 
-interface HouseholdData {
+export interface HouseholdData {
   household: Household;
   members: Member[];
   expenses: Expense[];
   balances: Balance[];
+  decisions: DecisionEvent[];
+  settlements: Settlement[];
+  memoryMode: "walrus" | "local-mock";
 }
 
 export default function HouseholdPage() {
@@ -24,6 +28,10 @@ export default function HouseholdPage() {
   const [memberName, setMemberName] = useState("");
   const [memberSui, setMemberSui] = useState("");
   const [memberError, setMemberError] = useState<string | null>(null);
+  const [deciding, setDeciding] = useState<string | null>(null);
+  const [correctingId, setCorrectingId] = useState<string | null>(null);
+  const [corrections, setCorrections] = useState<Record<string, string>>({});
+  const [decisionError, setDecisionError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -78,6 +86,43 @@ export default function HouseholdPage() {
     }
   }
 
+  async function toggleMemory(enabled: boolean) {
+    await fetch(`/api/households/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ memoryEnabled: enabled }),
+    });
+    await load();
+  }
+
+  async function decide(expense: Expense, action: "accept" | "correct") {
+    setDeciding(expense.id);
+    setDecisionError(null);
+    try {
+      let shares: { memberId: string; amountMinor: number }[] | undefined;
+      if (action === "correct") {
+        shares = expense.shares.map((s) => {
+          const raw = corrections[`${expense.id}:${s.memberId}`];
+          const major = raw === undefined ? s.amountMinor / 100 : Number(raw);
+          return { memberId: s.memberId, amountMinor: Math.round(major * 100) };
+        });
+      }
+      const res = await fetch(`/api/households/${id}/expenses/${expense.id}/decision`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action, shares }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not save that decision.");
+      setCorrectingId(null);
+      await load();
+    } catch (err) {
+      setDecisionError(err instanceof Error ? err.message : "Could not save that decision.");
+    } finally {
+      setDeciding(null);
+    }
+  }
+
   if (loadError) {
     return (
       <main>
@@ -87,11 +132,10 @@ export default function HouseholdPage() {
       </main>
     );
   }
-  if (!data) {
-    return <main><p className="muted" aria-live="polite">Loading your household…</p></main>;
-  }
+  if (!data) return <main><p className="muted" aria-live="polite">Loading your household…</p></main>;
 
   const { household, members, expenses, balances } = data;
+  const activeMembers = members.filter((m) => !m.revokedAt);
   const memberNameById = new Map(members.map((m) => [m.id, m.name]));
   const inviteUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${household.inviteToken}` : `/join/${household.inviteToken}`;
 
@@ -106,7 +150,27 @@ export default function HouseholdPage() {
   return (
     <main>
       <h1>{household.name}</h1>
-      <p className="lede">{members.length} member{members.length === 1 ? "" : "s"} · logging in {household.currency}</p>
+      <p className="lede">{activeMembers.length} member{activeMembers.length === 1 ? "" : "s"} · logging in {household.currency}</p>
+
+      <section className="card" aria-label="Memory switch">
+        <div className="row">
+          <h2 style={{ margin: 0 }}>Memory</h2>
+          <button
+            className="secondary"
+            role="switch"
+            aria-checked={household.memoryEnabled}
+            onClick={() => void toggleMemory(!household.memoryEnabled)}
+          >
+            {household.memoryEnabled ? "ON — splits learn" : "OFF — plain equal splits"}
+          </button>
+        </div>
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          {household.memoryEnabled
+            ? "Splits are proposed from your household's memories, and every accept/correct teaches Evenly."
+            : "Memory is off: every new split is a plain equal split and nothing is learned. Flip it on and compare the proposals."}
+          {" "}Storage: {data.memoryMode === "walrus" ? "Walrus Memory (Mainnet)" : "SIMULATED local memory — Walrus keys not configured yet"}.
+        </p>
+      </section>
 
       <form className="card" onSubmit={logExpense} aria-label="Log an expense in one line">
         <h2>Log a purchase</h2>
@@ -114,7 +178,6 @@ export default function HouseholdPage() {
         <label htmlFor="line">One line</label>
         <input id="line" value={line} onChange={(e) => setLine(e.target.value)} placeholder="groceries 12000 paid by Ada" autoComplete="off" />
         <button className="primary" type="submit" disabled={logging || !line.trim()}>{logging ? "Logging…" : "Log it"}</button>
-        <p className="muted small">Phase 1 splits equally. From Phase 2, Evenly proposes splits from Walrus Memory and shows why.</p>
       </form>
 
       <section className="card" aria-label="Balances">
@@ -137,6 +200,7 @@ export default function HouseholdPage() {
 
       <section className="card" aria-label="Expenses">
         <h2>Expenses</h2>
+        {decisionError && <div className="notice error" role="alert">{decisionError}</div>}
         {expenses.length === 0 ? (
           <p className="muted">Nothing logged yet. Your first line above starts the household's memory.</p>
         ) : (
@@ -144,12 +208,65 @@ export default function HouseholdPage() {
             {expenses.map((exp) => (
               <li key={exp.id}>
                 <div className="row">
-                  <span><strong>{exp.description}</strong> <span className="tag">{exp.category}</span></span>
+                  <span><strong>{exp.description}</strong> <span className="tag">{exp.category}</span> <span className="tag">{exp.status}</span></span>
                   <span className="amount">{household.currency} {formatMinor(exp.amountMinor)}</span>
                 </div>
                 <div className="muted small">
-                  Paid by {memberNameById.get(exp.paidByMemberId) ?? "someone"} · split {exp.shares.length} ways · {new Date(exp.createdAt).toLocaleString()}
+                  Paid by {memberNameById.get(exp.paidByMemberId) ?? "someone"} ·{" "}
+                  {exp.shares.map((s) => `${memberNameById.get(s.memberId) ?? "?"} ${formatMinor(s.amountMinor)}`).join(" · ")}
                 </div>
+                {exp.proposal && (
+                  <details style={{ marginTop: 6 }}>
+                    <summary>Why this split?</summary>
+                    <p className="small" style={{ margin: "6px 0" }}>{exp.proposal.explanation}</p>
+                    {exp.proposal.usedMemories.length === 0 ? (
+                      <p className="muted small">No memories were used for this proposal.</p>
+                    ) : (
+                      <ul className="clean">
+                        {exp.proposal.usedMemories.map((m, i) => {
+                          const link = explorerLinkForBlob(m.blobId);
+                          return (
+                            <li key={i} className="small">
+                              <span className="tag">{m.kind}</span>{" "}
+                              <span className="mono">{m.text}</span>
+                              <br />
+                              <span className="muted">blob: </span>
+                              {link ? <a href={link} target="_blank" rel="noreferrer" className="mono">{m.blobId}</a> : <span className="mono">{m.blobId} (local, not on-chain)</span>}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </details>
+                )}
+                {exp.status === "proposed" && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    <button className="secondary" disabled={deciding === exp.id} onClick={() => void decide(exp, "accept")}>
+                      {deciding === exp.id ? "Saving…" : "Accept split"}
+                    </button>
+                    <button className="secondary" disabled={deciding === exp.id} onClick={() => setCorrectingId(correctingId === exp.id ? null : exp.id)}>
+                      Correct it
+                    </button>
+                  </div>
+                )}
+                {correctingId === exp.id && (
+                  <div style={{ marginTop: 8 }}>
+                    {exp.shares.map((s) => (
+                      <div key={s.memberId}>
+                        <label htmlFor={`corr-${exp.id}-${s.memberId}`}>{memberNameById.get(s.memberId)} pays ({household.currency})</label>
+                        <input
+                          id={`corr-${exp.id}-${s.memberId}`}
+                          inputMode="decimal"
+                          defaultValue={(s.amountMinor / 100).toString()}
+                          onChange={(e) => setCorrections((c) => ({ ...c, [`${exp.id}:${s.memberId}`]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                    <button className="primary" disabled={deciding === exp.id} onClick={() => void decide(exp, "correct")}>
+                      {deciding === exp.id ? "Saving…" : "Save correction — Evenly will remember it"}
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -181,7 +298,10 @@ export default function HouseholdPage() {
         </form>
       </section>
 
-      <p className="muted small">Phase 1 build. Local state is a cache only — from Phase 2, Walrus Memory is the source of truth. <a href="/limits">Honest limits</a>.</p>
+      <p className="muted small">
+        Memory mode: {data.memoryMode === "walrus" ? "Walrus Memory on Mainnet — the source of truth." : "SIMULATED local memory (Walrus keys not configured). Local app state is a cache only."}{" "}
+        <a href="/limits">Honest limits</a> · <a href={`/proof/${id}`}>Restart proof</a>
+      </p>
     </main>
   );
 }
