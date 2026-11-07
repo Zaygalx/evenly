@@ -147,3 +147,14 @@ rather than footage. Replacing the demo shots with phone captures from
 the live site (capture plan above) is a drop in edit. A soft synthesized
 pad sits under the voiceover instead of licensed music in v1; the music
 sources above remain the plan for the final cut.
+
+## Production note, v2 (7 Nov 2026)
+
+The user generated the kitchen argument clip themselves with Higgsfield
+from a prompt Muse supplied, and sent the 4 second clip back. It now
+opens the video: receipts, argument, phone shown, laughter. Muse cut the
+text only hook from v1 and joined the clip to the front of the product
+cut, keeping the clip's own audio under the opening and the voiceover
+after. Result: evenly-demo-v2, 63 seconds, 1080p. The demo video URL for
+the submission form still needs a hosted link; upload this file wherever
+the form expects (YouTube, Loom or Drive) and use that URL.
