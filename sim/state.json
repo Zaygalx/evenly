@@ -324,6 +324,33 @@
       "category": "rent",
       "action": "correct",
       "deviation": 0.15
+    },
+    {
+      "key": "2:0:3",
+      "household": 2,
+      "day": 0,
+      "line": "groceries 3900 paid by Halima",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "2:0:4",
+      "household": 2,
+      "day": 0,
+      "line": "electricity 2800 paid by Ibrahim",
+      "category": "utilities",
+      "action": "accept",
+      "deviation": 0.02
+    },
+    {
+      "key": "2:0:5",
+      "household": 2,
+      "day": 0,
+      "line": "pharmacy 3100 paid by Halima",
+      "category": "health",
+      "action": "accept",
+      "deviation": 0
     }
   ],
   "settlements": []
