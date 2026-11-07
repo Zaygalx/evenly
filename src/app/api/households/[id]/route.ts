@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { computeBalances, getDecisions, getExpenses, getHousehold, getMembers, getSettlements, setDisplayPerUsdc, setMemoryEnabled } from "@/lib/store";
 import { getMemoryBackend } from "@/lib/memory/client";
+import { ensureHousehold } from "@/lib/hydrate";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  const household = getHousehold(id);
-  if (!household) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  const household = getHousehold(id)!;
   return NextResponse.json({
     household,
     members: getMembers(id),
@@ -19,7 +20,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!getHousehold(id)) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   let body: { memoryEnabled?: boolean; displayPerUsdcMinor?: number };
   try {
     body = await req.json();

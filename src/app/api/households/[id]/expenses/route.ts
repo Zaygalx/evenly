@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureHousehold } from "@/lib/hydrate";
 import { addExpense, getHousehold, getMembers } from "@/lib/store";
 import { parseExpenseLine } from "@/lib/parser";
 import { recallRecords } from "@/lib/memory/client";
@@ -9,6 +10,7 @@ import { weightsToString } from "@/lib/memory/serialize";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
+  await ensureHousehold(id);
   const household = getHousehold(id);
   if (!household) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   let body: { text?: string };

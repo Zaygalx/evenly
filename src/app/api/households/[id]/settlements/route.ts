@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureHousehold } from "@/lib/hydrate";
 import { addSettlement, computeBalances, getHousehold } from "@/lib/store";
 import { displayToUsdcMinor, suggestSettlements } from "@/lib/settlement";
 import { ensureCheckpointStream } from "@/lib/tatum";
@@ -11,6 +12,7 @@ import { ensureCheckpointStream } from "@/lib/tatum";
  */
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
+  await ensureHousehold(id);
   const household = getHousehold(id);
   if (!household) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   if (!household.displayPerUsdcMinor) {

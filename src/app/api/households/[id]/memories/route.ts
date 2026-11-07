@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { ensureHousehold } from "@/lib/hydrate";
 import { getHousehold } from "@/lib/store";
 import { getMemoryBackend, listAllRecords } from "@/lib/memory/client";
 import { serializeMemory } from "@/lib/memory/serialize";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!getHousehold(id)) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   const backend = getMemoryBackend();
   const records = await listAllRecords(id);
   return NextResponse.json({

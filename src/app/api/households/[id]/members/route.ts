@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureHousehold } from "@/lib/hydrate";
 import { addMember, getHousehold, getMembers, isValidSuiAddress } from "@/lib/store";
 import { rememberInBackground } from "@/lib/memory/background";
 
@@ -6,7 +7,7 @@ const MAX_MEMBERS = 20; // matches the Walrus Memory delegate-key cap designed f
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!getHousehold(id)) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   if (getMembers(id).length >= MAX_MEMBERS) {
     return NextResponse.json({ error: "This household is full (20 members max)." }, { status: 400 });
   }

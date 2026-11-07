@@ -17,7 +17,8 @@ export default function JoinPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/invite/${params.token}`);
+        const hint = new URLSearchParams(window.location.search).get("h");
+        const res = await fetch(`/api/invite/${params.token}${hint ? `?h=${hint}` : ""}`);
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "This invite link is not valid.");
         setHousehold(json.household);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureHousehold } from "@/lib/hydrate";
 import { getHousehold, getMember, setMemberDelegate } from "@/lib/store";
 
 /**
@@ -15,7 +16,7 @@ import { getHousehold, getMember, setMemberDelegate } from "@/lib/store";
  */
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string; memberId: string }> }) {
   const { id, memberId } = await ctx.params;
-  if (!getHousehold(id)) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   const member = getMember(memberId);
   if (!member || member.householdId !== id) return NextResponse.json({ error: "Member not found." }, { status: 404 });
   if (member.delegate && member.delegate.status === "active") {
@@ -46,7 +47,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string; m
 /** Mark a generated delegate key as added on-chain by the account owner. */
 export async function PATCH(_req: Request, ctx: { params: Promise<{ id: string; memberId: string }> }) {
   const { id, memberId } = await ctx.params;
-  if (!getHousehold(id)) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   const member = getMember(memberId);
   if (!member || member.householdId !== id || !member.delegate) {
     return NextResponse.json({ error: "No delegate key to activate for this member." }, { status: 404 });

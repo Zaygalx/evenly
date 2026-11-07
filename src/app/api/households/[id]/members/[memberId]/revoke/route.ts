@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureHousehold } from "@/lib/hydrate";
 import { DELEGATE_REVOKE_LAG_MS, getHousehold, getMember, revokeMember } from "@/lib/store";
 import { rememberInBackground } from "@/lib/memory/background";
 
@@ -14,7 +15,7 @@ import { rememberInBackground } from "@/lib/memory/background";
  */
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string; memberId: string }> }) {
   const { id, memberId } = await ctx.params;
-  if (!getHousehold(id)) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   const member = getMember(memberId);
   if (!member || member.householdId !== id) return NextResponse.json({ error: "Member not found." }, { status: 404 });
   const updated = revokeMember(memberId);

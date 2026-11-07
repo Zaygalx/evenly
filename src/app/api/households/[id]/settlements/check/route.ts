@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureHousehold } from "@/lib/hydrate";
 import { getHousehold } from "@/lib/store";
 import { checkHouseholdSettlements, ensureCheckpointStream, getWatcherState, simulatedTransferFor, tatumConfigured } from "@/lib/tatum";
 import { getMemoryBackend } from "@/lib/memory/client";
@@ -15,7 +16,7 @@ import { getMemoryBackend } from "@/lib/memory/client";
  */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!getHousehold(id)) return NextResponse.json({ error: "Household not found." }, { status: 404 });
+  if (!(await ensureHousehold(id))) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   let body: { simulate?: boolean } = {};
   try {
     body = (await req.json()) as { simulate?: boolean };

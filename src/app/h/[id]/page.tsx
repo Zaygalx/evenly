@@ -221,7 +221,7 @@ export default function HouseholdPage() {
   const { household, members, expenses, balances } = data;
   const activeMembers = members.filter((m) => !m.revokedAt);
   const memberNameById = new Map(members.map((m) => [m.id, m.name]));
-  const inviteUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${household.inviteToken}` : `/join/${household.inviteToken}`;
+  const inviteUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${household.inviteToken}?h=${household.id}` : `/join/${household.inviteToken}?h=${household.id}`;
 
   async function copyInvite() {
     try {

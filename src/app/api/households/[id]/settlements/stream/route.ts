@@ -1,4 +1,5 @@
 import { getHousehold, getSettlements } from "@/lib/store";
+import { ensureHousehold } from "@/lib/hydrate";
 import { checkHouseholdSettlements, ensureCheckpointStream, getWatcherState, tatumConfigured } from "@/lib/tatum";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!getHousehold(id)) return new Response("Household not found", { status: 404 });
+  if (!(await ensureHousehold(id))) return new Response("Household not found", { status: 404 });
   ensureCheckpointStream(id);
 
   const encoder = new TextEncoder();

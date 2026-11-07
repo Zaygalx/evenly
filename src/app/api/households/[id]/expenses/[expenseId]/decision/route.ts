@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureHousehold } from "@/lib/hydrate";
 import { getExpense, getHousehold, getMembers, recordDecision, setExpenseShares } from "@/lib/store";
 import { rememberInBackground } from "@/lib/memory/background";
 import { sharesToWeights } from "@/lib/splitEngine";
@@ -15,6 +16,7 @@ import { weightsToString } from "@/lib/memory/serialize";
  */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string; expenseId: string }> }) {
   const { id, expenseId } = await ctx.params;
+  await ensureHousehold(id);
   const household = getHousehold(id);
   if (!household) return NextResponse.json({ error: "Household not found." }, { status: 404 });
   const expense = getExpense(expenseId);
