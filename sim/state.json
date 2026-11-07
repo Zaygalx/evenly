@@ -99,6 +99,42 @@
       "action": "accept",
       "deviation": 0,
       "note": "Accept applied by operator via curl after the harness decision posts were repeatedly lost by this network (node fetch long connections dropped; the expense itself was also operator posted). Proposal was 50/50, the hidden rent rule is 50/50, so accept is the persona correct action. Acceptance and rule memories verified on Walrus."
+    },
+    {
+      "key": "0:0:2",
+      "household": 0,
+      "day": 0,
+      "line": "electricity 3000 paid by Adaeze",
+      "category": "utilities",
+      "action": "accept",
+      "deviation": 0.1
+    },
+    {
+      "key": "0:0:3",
+      "household": 0,
+      "day": 0,
+      "line": "groceries 3650 paid by Chidi",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "0:0:4",
+      "household": 0,
+      "day": 0,
+      "line": "movie tickets 5000 paid by Adaeze",
+      "category": "fun",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "0:0:5",
+      "household": 0,
+      "day": 0,
+      "line": "detergent 1800 paid by Chidi",
+      "category": "household",
+      "action": "accept",
+      "deviation": 0
     }
   ],
   "settlements": []
