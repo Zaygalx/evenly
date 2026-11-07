@@ -1,34 +1,38 @@
-# X post draft — Evenly launch
+# X post drafts, Evenly launch (Nov 2026)
 
-Main post:
+X is not connected to Muse, so these are for manual posting.
+Before posting: publish the blog first, then replace BLOG_URL below with the
+final published dev.to link (the draft link has a temp slug that changes).
 
-> "How do we split this one?"
->
-> Every household asks it weekly. The answer is always the same — but no app remembers it.
->
-> Meet Evenly: log `groceries 12000 paid by Ada`, and it proposes the split from your
-> household's own memories on @WalrusFoundation Memory. Correct it once — never explain
-> it again. Settle in USDC on Sui, watched live via @Tatum_io.
->
-> Built for Total Recall 🧵
+## Short version (single post)
 
-Thread:
+The roommate money argument is over.
 
-> 1/ Every proposal shows its working: the exact memories behind it, blob ids included.
-> No black box — your rules, inspectable on Walrus.
+I built Evenly. Log one line, it learns how your household splits, and when a USDC payback lands it marks itself Settled.
 
-> 2/ It visibly learns: our learning chart plots proposals accepted *without an edit*,
-> per week, from real decisions only. Flip the memory switch off and it drops back to
-> blind equal splits.
+Memory: @WalrusFoundation
+Detection: @Tatum_io
 
-> 3/ Settlement isn't a promise, it's a chain event: Tatum's Sui gRPC checkpoint stream
-> + polling backfill flips settlements to ✅ Settled with the real tx digest.
+Learned the split in one correction.
 
-> 4/ And the proof: one button wipes ALL local state — and the household rebuilds itself
-> from Walrus Memory alone. The memory isn't a feature. It is the database.
+BLOG_URL
 
-> 5/ Honest by default: anything simulated is labelled, revocation shows its real ~30s
-> lag, and Evenly never invents an exchange rate. Try it / read the code: [link]
+Video hook line, add when the demo video is attached:
+Watch the argument die in five seconds. 👇
 
-Notes: attach the 90-second demo video to the main post; add repo + live links in post 5
-at publish time.
+## Thread version (5 posts)
+
+1/ The argument is dead.
+"I paid yesterday." "No you did not."
+I built Evenly so the receipts argue instead of the roommates. One line per purchase, and the app remembers how your household splits.
+BLOG_URL
+
+2/ How it remembers: every purchase, accept and correction becomes a memory on @WalrusFoundation, one namespace per household. Proposals come from recall, and the Why panel cites the exact memories behind a split, blob ids included. No black box.
+
+3/ How it settles: Evenly works out who owes whom in USDC on Sui. Your flatmate pays from their own wallet. @Tatum_io watches the chain and flips the debt to Settled with the real transaction digest. The app never holds keys and never moves money.
+
+4/ I tested it with agent households. Automated agents played the members. 48 purchases, 42 accepted, 6 corrected, and every correction taught it something. When the groceries rule quietly changed from 50 50 to 70 30, it relearned in one correction.
+
+5/ Honest bits: the agents caught five real bugs before any human trusted the app. Real households so far: zero, and the test data is labelled everywhere.
+Try it: https://evenly-gamma-three.vercel.app
+Code: https://github.com/Zaygalx/evenly
