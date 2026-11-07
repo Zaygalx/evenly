@@ -297,6 +297,33 @@
       "category": "transport",
       "action": "accept",
       "deviation": 0.01
+    },
+    {
+      "key": "2:0:0",
+      "household": 2,
+      "day": 0,
+      "line": "groceries 4500 paid by Ibrahim",
+      "category": "groceries",
+      "action": "accept",
+      "deviation": 0
+    },
+    {
+      "key": "2:0:1",
+      "household": 2,
+      "day": 0,
+      "line": "water bill 2200 paid by Halima",
+      "category": "utilities",
+      "action": "correct",
+      "deviation": 0.3
+    },
+    {
+      "key": "2:0:2",
+      "household": 2,
+      "day": 0,
+      "line": "rent 12000 paid by Ibrahim",
+      "category": "rent",
+      "action": "correct",
+      "deviation": 0.15
     }
   ],
   "settlements": []
