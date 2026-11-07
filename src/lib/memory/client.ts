@@ -84,7 +84,7 @@ const walrusBackend: MemoryBackend = {
     // vocabulary (every record we write contains "kind=<kind>") at a wide
     // distance, plus the broad query, and merge by blob id.
     const queries = [
-      "EVENLY kind household member expense rule correction acceptance settlement",
+      "EVENLY kind household member expense rule correction acceptance settlement delegate",
       "EVENLY/1 kind=household",
       "EVENLY/1 kind=member",
       "EVENLY/1 kind=expense",
@@ -92,6 +92,7 @@ const walrusBackend: MemoryBackend = {
       "EVENLY/1 kind=correction",
       "EVENLY/1 kind=acceptance",
       "EVENLY/1 kind=settlement",
+      "EVENLY/1 kind=delegate",
     ];
     const seen = new Map<string, MemoryHit>();
     for (const query of queries) {

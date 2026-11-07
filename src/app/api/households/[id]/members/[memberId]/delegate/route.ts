@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureHousehold, ensureMember } from "@/lib/hydrate";
+import { rememberInBackground } from "@/lib/memory/background";
 import { getHousehold, getMember, setMemberDelegate } from "@/lib/store";
 
 /**
@@ -33,6 +34,15 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string; m
       generatedAt: new Date().toISOString(),
     };
     setMemberDelegate(memberId, delegate);
+    // Persist the PUBLIC delegate state (never the private key) so any
+    // instance can see it. Without this the delegate existed only in the
+    // generating instance's cache and activation or revocation on another
+    // instance reported the member had no key. Found live 7 Nov 2026.
+    rememberInBackground([{
+      kind: "delegate",
+      householdId: id,
+      fields: { member: memberId, publicKey: delegate.publicKey, delegateSui: delegate.suiAddress, status: delegate.status, generatedAt: delegate.generatedAt },
+    }]);
     return NextResponse.json({
       delegate,
       // Shown once. The member must store this like a password.
@@ -55,5 +65,12 @@ export async function PATCH(_req: Request, ctx: { params: Promise<{ id: string; 
     return NextResponse.json({ error: "No delegate key to activate for this member." }, { status: 404 });
   }
   const updated = setMemberDelegate(memberId, { ...member.delegate, status: "active" });
+  if (updated?.delegate) {
+    rememberInBackground([{
+      kind: "delegate",
+      householdId: id,
+      fields: { member: memberId, publicKey: updated.delegate.publicKey, delegateSui: updated.delegate.suiAddress, status: "active", generatedAt: updated.delegate.generatedAt },
+    }]);
+  }
   return NextResponse.json({ member: updated });
 }

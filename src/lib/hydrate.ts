@@ -10,7 +10,7 @@ import {
 import { getMemoryBackend, listAllRecords } from "./memory/client";
 import { parseWeights } from "./memory/serialize";
 import { weightedShares } from "./splitEngine";
-import type { Expense, Household, Member, Settlement } from "./types";
+import type { DelegateStatus, Expense, Household, Member, Settlement } from "./types";
 
 /**
  * Cold-instance hydration.
@@ -56,6 +56,34 @@ export async function ensureHousehold(householdId: string): Promise<boolean> {
     };
     members.push(member);
     insertMember(member);
+  }
+
+  // Delegate state is persisted as delegate records (public data only,
+  // never a private key). The latest record per member wins and restores
+  // the member's revocation plus the delegate's public state, so the
+  // revoking lag behaves the same on every instance.
+  const delegateByMember = new Map<string, (typeof records)[number]>();
+  for (const rec of byKind("delegate")) {
+    const mid = rec.record.fields.member;
+    if (!mid) continue;
+    const prev = delegateByMember.get(mid);
+    if (!prev || (rec.createdAt ?? "") >= (prev.createdAt ?? "")) delegateByMember.set(mid, rec);
+  }
+  for (const member of members) {
+    const rec = delegateByMember.get(member.id);
+    if (!rec) continue;
+    const f = rec.record.fields;
+    if (f.memberRevokedAt) member.revokedAt = f.memberRevokedAt;
+    if (f.publicKey && f.delegateSui) {
+      member.delegate = {
+        publicKey: f.publicKey,
+        suiAddress: f.delegateSui,
+        status: (f.status as DelegateStatus) ?? "generated",
+        generatedAt: f.generatedAt ?? new Date().toISOString(),
+        ...(f.revokedAt ? { revokedAt: f.revokedAt } : {}),
+      };
+      if (f.revokedAt && !member.revokedAt) member.revokedAt = f.revokedAt;
+    }
   }
 
   // Decisions are memories too. Index the latest acceptance or correction

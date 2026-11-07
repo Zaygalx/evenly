@@ -20,7 +20,8 @@ export type MemoryKind =
   | "correction"
   | "acceptance"
   | "settlement_habit"
-  | "settlement";
+  | "settlement"
+  | "delegate";
 
 export interface MemoryRecord {
   kind: MemoryKind;
@@ -38,6 +39,7 @@ const KINDS = new Set<string>([
   "acceptance",
   "settlement_habit",
   "settlement",
+  "delegate",
 ]);
 
 export function serializeMemory(record: MemoryRecord): string {

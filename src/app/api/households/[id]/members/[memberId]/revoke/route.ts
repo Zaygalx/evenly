@@ -20,11 +20,26 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string; m
   if (!member && (await ensureMember(id, memberId))) member = getMember(memberId);
   if (!member || member.householdId !== id) return NextResponse.json({ error: "Member not found." }, { status: 404 });
   const updated = revokeMember(memberId);
-  rememberInBackground([{
-    kind: "settlement_habit",
-    householdId: id,
-    fields: { category: "any", note: `Member ${member.name} was revoked at ${new Date().toISOString()}; delegate removal can lag ~30s (verification caching).` },
-  }]);
+  rememberInBackground([
+    {
+      kind: "settlement_habit",
+      householdId: id,
+      fields: { category: "any", note: `Member ${member.name} was revoked at ${new Date().toISOString()}; delegate removal can lag ~30s (verification caching).` },
+    },
+    {
+      // The revocation itself is state other instances must see: who was
+      // revoked, when, and the delegate's public state at revocation.
+      kind: "delegate",
+      householdId: id,
+      fields: {
+        member: memberId,
+        memberRevokedAt: updated?.revokedAt ?? new Date().toISOString(),
+        ...(updated?.delegate
+          ? { publicKey: updated.delegate.publicKey, delegateSui: updated.delegate.suiAddress, status: updated.delegate.status, generatedAt: updated.delegate.generatedAt, ...(updated.delegate.revokedAt ? { revokedAt: updated.delegate.revokedAt } : {}) }
+          : {}),
+      },
+    },
+  ]);
   return NextResponse.json({
     member: updated,
     delegateStatus: updated?.delegate ? "revoking" : "none",
