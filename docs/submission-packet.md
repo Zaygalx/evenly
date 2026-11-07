@@ -1,0 +1,60 @@
+# Submission packet, Evenly, Total Recall (Tatum x Walrus Memory)
+
+Prepared 7 Nov 2026. Deadline Tue 10 Nov 2026, 17:00 UTC.
+
+## Links
+
+- Public repo: https://github.com/Zaygalx/evenly
+  Made public 7 Nov 2026. Secret scan of the full history on the same day:
+  clean. The only env file is .env.example with empty values. Real keys live
+  in Vercel env and the local sim vault, never in git.
+- Live app: https://evenly-gamma-three.vercel.app
+- Blog post (dev.to): DRAFT, not yet published.
+  https://dev.to/zaygalx/one-correction-and-it-learned-building-evenly-a-money-app-with-a-memory-4l2n-temp-slug-779537
+  The slug changes on publish. Publish first, then use the final URL in the
+  form and in the X post.
+- Demo video: does not exist yet. The plan is in docs/demo-video-plan.md and
+  rendering waits for the user's approval.
+- X post: not posted. X is not connected to Muse. Drafts are in
+  docs/x-post.md for manual posting after the blog is published.
+
+## Values the form asks for
+
+- Tatum dashboard account ID: 6aeef5b646ca44fe36bd2eb2 (supplied by the user)
+- Walrus Memory account ID: 0x68c4abd3ae1bf69f625cec09533419e330f1625e696e814babe3f84b3987d4b9
+- Walrus delegate (MEMWAL_AGENT_ID), read from the on chain account, the
+  single delegate labelled "Web App":
+  - Delegate Sui address: 0x2f2e54bbd8ab699bdf0f4d2624d5d077102fbc798b464aec3638d268805208a3
+  - Delegate public key (hex): 47543c7bb5bce2627d18b6792a427031540b997848d3f652ac78114a80e32e3d
+  - Delegate public key (base64, as stored on chain): R1Q8e7W84mJ9GLZ5KkJwMVQLmXhI0/ZSrHgRSoDjLj0=
+
+## Exactly what to enter in the form
+
+1. Project name: Evenly
+2. Live demo URL: https://evenly-gamma-three.vercel.app
+3. GitHub repo: https://github.com/Zaygalx/evenly
+4. Blog URL: the final published dev.to URL (publish the draft first)
+5. Demo video URL: pending the video; add when it exists
+6. X post URL: pending manual posting; add after posting
+7. Tatum account ID: 6aeef5b646ca44fe36bd2eb2
+8. Walrus delegate public key or agent id: from the values above
+9. Description, short: Evenly is a shared money app for couples and
+   roommates. Log a purchase in one line; Evenly proposes the split from
+   your household's own Walrus Memory, shows the memories behind every
+   proposal, learns from one correction, and detects real USDC settlements
+   on Sui through Tatum, flipping them to Settled with the transaction
+   digest. Walrus is the only source of truth: wipe the server and the
+   household rebuilds from memory alone.
+10. Evidence worth pasting if the form allows it:
+    - Restart proof, live: 40 memories, expenses 12 to 12, settlements
+      1 to 1, balances identical (docs/live-verification-2026-11-07.md)
+    - Agent test: 150 memories, 48 purchases, 42 accepts, 6 corrections,
+      6 of 6 USDC settlements detected live (sim/REPORT.md)
+    - One settlement digest: B3eqxfhVy5STuvnKTYLfh3xkrpxHoZjMgsFnYFb5KkMo
+
+## What Muse could not get
+
+Nothing outstanding. The Tatum account ID came from the user. The Walrus
+delegate public key and address were read from the on chain MemWal account.
+The two pending links (final blog URL, video URL, X post URL) depend on the
+user's publish, approve and post steps.
