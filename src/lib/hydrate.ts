@@ -27,7 +27,8 @@ export async function ensureHousehold(householdId: string): Promise<boolean> {
 
   const records = await listAllRecords(householdId);
   const byKind = (kind: string) => records.filter((r) => r.record.kind === kind);
-  const hhRecord = byKind("household")[0];
+  // Settings updates append a fresh household record; the latest one wins.
+  const hhRecord = byKind("household").sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))[0];
   if (!hhRecord) return false;
 
   const household: Household = {
@@ -36,7 +37,8 @@ export async function ensureHousehold(householdId: string): Promise<boolean> {
     inviteToken: hhRecord.record.fields.invite ?? "",
     createdAt: hhRecord.record.fields.createdAt ?? new Date().toISOString(),
     currency: hhRecord.record.fields.currency ?? "NGN",
-    memoryEnabled: true,
+    memoryEnabled: hhRecord.record.fields.memoryEnabled !== "false",
+    ...(hhRecord.record.fields.rate ? { displayPerUsdcMinor: Number(hhRecord.record.fields.rate) } : {}),
   };
   insertHousehold(household);
 

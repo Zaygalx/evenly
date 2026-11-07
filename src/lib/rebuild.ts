@@ -78,14 +78,15 @@ export async function rebuildAllFromMemories(targetHouseholdId: string): Promise
     const records = memoriesByHousehold.get(hid) ?? [];
     const byKind = (kind: string) => records.filter((r) => r.record.kind === kind);
 
-    const hhRecord = byKind("household")[0];
+    const hhRecord = byKind("household").sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))[0];
     const household: Household = {
       id: hid,
       name: hhRecord?.record.fields.name ?? beforeHousehold?.name ?? "Recovered household",
       inviteToken: hhRecord?.record.fields.invite ?? "",
       createdAt: hhRecord?.record.fields.createdAt ?? new Date().toISOString(),
       currency: hhRecord?.record.fields.currency ?? "NGN",
-      memoryEnabled: true,
+      memoryEnabled: hhRecord?.record.fields.memoryEnabled !== "false",
+      ...(hhRecord?.record.fields.rate ? { displayPerUsdcMinor: Number(hhRecord.record.fields.rate) } : {}),
     };
     if (!household.inviteToken) {
       household.inviteToken = `recovered-${hid.slice(0, 8)}`;

@@ -387,8 +387,9 @@ async function settlePrep() {
   const state = loadState();
   for (const hh of state.households) {
     if (state.settlements.some((s) => s.household === hh.index)) { console.log(`household ${hh.index} settlements exist, skipping`); continue; }
-    const res = await post(`/api/households/${hh.id}/settlements`);
-    const data = await api(`/api/households/${hh.id}`);
+    const res = await firePost(`/api/households/${hh.id}/settlements`);
+    if (res?.error) throw new Error(`Settlement prep failed for household ${hh.index}: ${res.error}`);
+    const data = await getHouseholdReliable(hh.id);
     const nameById = new Map(hh.members.map((m) => [m.id, m.name]));
     const addrByName = new Map(hh.members.map((m) => [m.name, m.address]));
     for (const s of data.settlements ?? []) {
