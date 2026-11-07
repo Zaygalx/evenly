@@ -240,74 +240,134 @@ async function setup() {
   console.log("setup complete");
 }
 
+async function listMemories(householdId: string): Promise<any[]> {
+  const data = await api(`/api/households/${householdId}/memories`).catch(() => null);
+  return data?.memories ?? [];
+}
+
+function parseRecord(text: string): Record<string, string> {
+  // Memory text is "EVENLY/1 key=value key=value ..." with URL encoded values.
+  const out: Record<string, string> = {};
+  for (const part of text.replace(/^EVENLY\/1\s+/, "").split(" ")) {
+    const eq = part.indexOf("=");
+    if (eq > 0) {
+      try { out[part.slice(0, eq)] = decodeURIComponent(part.slice(eq + 1)); } catch { out[part.slice(0, eq)] = part.slice(eq + 1); }
+    }
+  }
+  return out;
+}
+
+function textField(text: string, key: string): string | null {
+  return parseRecord(text)[key] ?? null;
+}
+
+function parseWeights(text: string): Record<string, number> {
+  // weights are stored as "Adaeze:50,Chidi:50" (percentages).
+  const raw = textField(text, "weights") ?? "";
+  const out: Record<string, number> = {};
+  for (const part of raw.split(",")) {
+    const [name, w] = part.split(":");
+    if (name && w) out[name.trim()] = Number(w) / 100;
+  }
+  return out;
+}
+
+/** POST with a long held connection: if the client disconnects early the
+ *  platform cancels the invocation before the work lands. The response can
+ *  still be dropped at the very end, so never throw: callers verify effects
+ *  through memories. */
+async function firePost(path: string, body?: unknown): Promise<any> {
+  await pace();
+  lastPostAt = Date.now();
+  return api(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }, 570000).catch(() => null);
+}
+
 async function cycle(hhIndex: number, dayIndex: number) {
   const state = loadState();
-  const hh = state.households.find((h) => h.index === hhIndex);
+  const hh = state.households[hhIndex];
   if (!hh) throw new Error("Run setup first");
   const persona = PERSONAS[hhIndex];
+  const rules = persona.members[0].rules;
   const lines = persona.days[dayIndex];
-  if (!lines) throw new Error(`No day ${dayIndex} for household ${hhIndex}`);
-  const rules = persona.members[0].rules; // the household's shared hidden rulebook
+  if (!lines) throw new Error(`No scripted day ${dayIndex} for household ${hhIndex}`);
   const memberIdByName = new Map(hh.members.map((m) => [m.name, m.id]));
-  const memberNameById = new Map(hh.members.map((m) => [m.id, m.name]));
+  const names = hh.members.map((m) => m.name);
 
   for (let i = 0; i < lines.length; i++) {
     const key = `${hhIndex}:${dayIndex}:${i}`;
-    if (state.actions.some((a) => a.key === key)) { console.log(`skip ${key} (done)`); continue; }
+    if (state.actions.some((a) => a.key === key)) continue;
     const line = lines[i];
-    let expenseId: string;
-    let category: string;
-    try {
-      const posted = await post(`/api/households/${hh.id}/expenses`, { text: line });
-      expenseId = posted.expense.id;
-      category = posted.expense.category;
-    } catch (err) {
-      // Responses are held open until the memory write chain finishes and
-      // can be dropped by the network after the expense has in fact been
-      // created. Recover by finding the expense in the household by its
-      // exact raw line; only a genuinely missing expense is an error.
-      console.log(`${key} expense response lost (${err instanceof Error ? err.message : err}), recovering from household state`);
-      await sleep(20000);
-      const data = await getHouseholdReliable(hh.id);
-      const found = (data.expenses ?? []).find((e: any) => e.rawText === line && e.status === "proposed");
-      if (!found) throw err;
-      expenseId = found.id;
-      category = found.category;
-      console.log(`${key} recovered expense ${expenseId}`);
-    }
-    console.log(`${key} logged "${line}" [${category}], waiting for its memory…`);
-    await waitForMemory(hh.id, (m) => m.kind === "expense" && m.text.includes(`expense=${expenseId}`), `expense ${expenseId}`);
+    const lineAmountMinor = Number((line.match(/\d+/) ?? ["0"])[0]) * 100;
 
-    const data = await getHouseholdReliable(hh.id);
-    const expense = (data.expenses ?? []).find((e: any) => e.id === expenseId);
-    if (!expense) throw new Error(`Expense ${expenseId} not visible after its memory landed`);
-    const amount: number = expense.amountMinor;
-    const proposed: Record<string, number> = {};
-    for (const s of expense.shares) proposed[memberNameById.get(s.memberId) ?? "?"] = s.amountMinor / amount;
-    const names = hh.members.map((m) => m.name);
+    // Everything is driven off the household's Walrus memories, read through
+    // the app's own memories endpoint. Those reads are short and reliable,
+    // unlike the long held-open write responses on this network.
+    const before = await listMemories(hh.id);
+    const decided = new Set<string>();
+    for (const m of before) {
+      if (m.kind === "acceptance" || m.kind === "correction") {
+        const id = textField(m.text, "expense");
+        if (id) decided.add(id);
+      }
+    }
+    let target = before.find(
+      (m) => m.kind === "expense" && textField(m.text, "expense") && !decided.has(textField(m.text, "expense")!) && Number(textField(m.text, "amountMinor")) === lineAmountMinor,
+    );
+    if (!target) {
+      const knownIds = new Set(before.map((m) => m.blobId));
+      await firePost(`/api/households/${hh.id}/expenses`, { text: line });
+      console.log(`${key} logged "${line}", waiting for its memory…`);
+      const deadline = Date.now() + 480000;
+      let reposted = false;
+      while (!target && Date.now() < deadline) {
+        await sleep(9000);
+        const now = await listMemories(hh.id);
+        target = now.find((m) => m.kind === "expense" && textField(m.text, "expense") && !knownIds.has(m.blobId) && !decided.has(textField(m.text, "expense")!));
+        if (!target && !reposted && Date.now() > deadline - 330000) {
+          reposted = true;
+          console.log(`${key} no memory after 150s, posting the line once more`);
+          await firePost(`/api/households/${hh.id}/expenses`, { text: line });
+        }
+      }
+      if (!target) throw new Error(`Expense memory for "${line}" never appeared`);
+    } else {
+      console.log(`${key} adopting undecided expense from an earlier attempt: "${line}"`);
+    }
+
+    const expenseId: string = textField(target.text, "expense")!;
+    const amountMinor = Number(textField(target.text, "amountMinor"));
+    const category = textField(target.text, "category") ?? "other";
+    const proposed = parseWeights(target.text);
     const hiddenRaw = rules[category] ?? Object.fromEntries(names.map((n) => [n, 1 / names.length]));
     const hiddenTotal = names.reduce((a, n) => a + (hiddenRaw[n] ?? 0), 0);
     const hidden: Record<string, number> = Object.fromEntries(names.map((n) => [n, (hiddenRaw[n] ?? 0) / hiddenTotal]));
     const deviation = Math.max(...names.map((n) => Math.abs((proposed[n] ?? 0) - hidden[n])));
 
-    let action: "accept" | "correct";
     let body: unknown;
+    let action: "accept" | "correct";
     if (deviation <= ACCEPT_TOLERANCE + Math.random() * NOISE) {
       action = "accept";
       body = { action };
     } else {
       action = "correct";
-      body = { action, shares: sharesFromWeights(amount, jitterWeights(hidden, names), memberIdByName) };
+      body = { action, shares: sharesFromWeights(amountMinor, jitterWeights(hidden, names), memberIdByName) };
     }
-    await post(`/api/households/${hh.id}/expenses/${expenseId}/decision`, body).catch((err) => {
-      console.log(`${key} decision response lost (${err instanceof Error ? err.message : err}), verifying via memory instead`);
-    });
-    await waitForMemory(hh.id, (m) => (m.kind === "acceptance" || m.kind === "correction") && m.text.includes(`expense=${expenseId}`), `decision ${expenseId}`);
+
+    await firePost(`/api/households/${hh.id}/expenses/${expenseId}/decision`, body);
+    try {
+      await waitForMemory(hh.id, (m) => (m.kind === "acceptance" || m.kind === "correction") && m.text.includes(`expense=${expenseId}`), `decision ${expenseId}`, 120000);
+    } catch {
+      console.log(`${key} decision not visible yet, posting it once more`);
+      await firePost(`/api/households/${hh.id}/expenses/${expenseId}/decision`, body);
+      await waitForMemory(hh.id, (m) => (m.kind === "acceptance" || m.kind === "correction") && m.text.includes(`expense=${expenseId}`), `decision ${expenseId}`, 300000);
+    }
+
     state.actions.push({ key, household: hhIndex, day: dayIndex, line, category, action, deviation: Math.round(deviation * 1000) / 1000 });
     saveState(state);
-    console.log(`${key} ${action} (deviation ${deviation.toFixed(3)})`);
+    console.log(`${key} [${category}] proposed vs hidden deviation ${deviation.toFixed(3)} -> ${action}`);
+    await sleep(8000);
   }
-  console.log(`cycle complete: household ${hhIndex} day ${dayIndex}`);
+  console.log(`cycle ${hhIndex} day ${dayIndex} complete`);
 }
 
 async function settlePrep() {

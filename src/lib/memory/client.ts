@@ -26,7 +26,7 @@ export interface MemoryHit {
 export interface MemoryBackend {
   mode: "walrus" | "local-mock";
   rememberAndWait(text: string, namespace: string): Promise<{ blobId: string }>;
-  recall(query: string, namespace: string, topK: number): Promise<MemoryHit[]>;
+  recall(query: string, namespace: string, topK: number, maxDistance?: number): Promise<MemoryHit[]>;
   listAll(namespace: string): Promise<MemoryHit[]>;
 }
 
@@ -71,17 +71,33 @@ const walrusBackend: MemoryBackend = {
     const result = await client.rememberAndWait(text);
     return { blobId: result.blob_id };
   },
-  async recall(query, namespace, topK) {
+  async recall(query, namespace, topK, maxDistance = 0.85) {
     const client = await getWalrusClient(namespace);
-    const res = await client.recall({ query, topK, maxDistance: 0.85 });
+    const res = await client.recall({ query, topK, maxDistance });
     return res.results.map((r) => ({ text: r.text, blobId: r.blob_id, createdAt: r.created_at }));
   },
   async listAll(namespace) {
-    // Recall is semantic; for a full listing we query with the Evenly prefix
-    // vocabulary, which matches every structured memory we write.
-    const hits = await this.recall("EVENLY kind household member expense rule correction acceptance settlement", namespace, 100);
+    // Recall is semantic, so a single broad query can silently miss records
+    // whose embeddings sit far from it, and the miss differs from call to
+    // call. A listing that feeds hydration and the restart proof must be
+    // complete, so we sweep once per record kind with the kind's own literal
+    // vocabulary (every record we write contains "kind=<kind>") at a wide
+    // distance, plus the broad query, and merge by blob id.
+    const queries = [
+      "EVENLY kind household member expense rule correction acceptance settlement",
+      "EVENLY/1 kind=household",
+      "EVENLY/1 kind=member",
+      "EVENLY/1 kind=expense",
+      "EVENLY/1 kind=rule",
+      "EVENLY/1 kind=correction",
+      "EVENLY/1 kind=acceptance",
+      "EVENLY/1 kind=settlement",
+    ];
     const seen = new Map<string, MemoryHit>();
-    for (const hit of hits) if (!seen.has(hit.blobId)) seen.set(hit.blobId, hit);
+    for (const query of queries) {
+      const hits = await this.recall(query, namespace, 100, 0.99);
+      for (const hit of hits) if (!seen.has(hit.blobId)) seen.set(hit.blobId, hit);
+    }
     return [...seen.values()];
   },
 };
