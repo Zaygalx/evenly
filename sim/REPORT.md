@@ -1,17 +1,20 @@
-# Evenly simulation report
+# Evenly agent test report
 
-Simulated data only. These four households are labelled Simulated in the app,
-and nothing here is merged with any real household. Every proposal the agents
-judged came from the app, which builds proposals only from Walrus Memory recall.
+Agent test data only. Automated agents played household members in these four
+households, and every settlement was a real USDC transfer on Sui mainnet
+detected live through Tatum. Nothing here is merged with any real household,
+and the provenance marker stays on every household and every record. Every
+proposal the agents judged came from the app, which builds proposals only
+from Walrus Memory recall.
 
-## Simulated Household 1, Night Owls
+## Agent test household 1, Night Owls
 
 Household id: 113aa5c1-53e2-4834-855e-243aa7d25d58
 Members: Adaeze, Chidi
 Memories on Walrus: 39
 
-Simulated day 1: 6 purchases, 5 accepted without correction, acceptance rate 83%
-Simulated day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%
+Day 1: 6 purchases, 5 accepted without correction, acceptance rate 83%
+Day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%
 
 Blob ids:
 - acceptance: eIOuFcvE-9zlPyMD100tOyBYdLEVqQiTzsBufMhG7lQ
@@ -57,14 +60,14 @@ Blob ids:
 Settlements:
 - Chidi pays Adaeze: 0.37 USDC, status settled, tx B3eqxfhVy5STuvnKTYLfh3xkrpxHoZjMgsFnYFb5KkMo
 
-## Simulated Household 2, Marble Arch Flat
+## Agent test household 2, Marble Arch Flat
 
 Household id: defa9273-3a47-4a52-8dd6-4d68f2f77a5d
 Members: Funmi, Sara, Tunde
 Memories on Walrus: 37
 
-Simulated day 1: 6 purchases, 5 accepted without correction, acceptance rate 83%
-Simulated day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%
+Day 1: 6 purchases, 5 accepted without correction, acceptance rate 83%
+Day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%
 
 Blob ids:
 - acceptance: nnCnHV-UC5pNLNGW-MyatWO7S1WqtVO3iMLPqnQ3TRY
@@ -109,14 +112,14 @@ Settlements:
 - Tunde pays Sara: 1.43156 USDC, status settled, tx BWM5wXrefpfQyMLhsUobE9pSkHHPiRW2v6CDJ4szY98Q
 - Tunde pays Funmi: 2.144347 USDC, status settled, tx FwZproub5co8NQJfq7udihSS8aWUEvHZunZsjQPCCXz
 
-## Simulated Household 3, Garden Flat
+## Agent test household 3, Garden Flat
 
 Household id: dc80d1f5-ed7a-4b92-a97e-6f68711b0872
 Members: Ibrahim, Halima
 Memories on Walrus: 36
 
-Simulated day 1: 6 purchases, 4 accepted without correction, acceptance rate 67%
-Simulated day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%
+Day 1: 6 purchases, 4 accepted without correction, acceptance rate 67%
+Day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%
 
 Blob ids:
 - acceptance: sBrQ79JvvmUj7XRY6-UXdszRI-yYf_D2vzEpRQ4gFYw
@@ -159,14 +162,14 @@ Blob ids:
 Settlements:
 - Ibrahim pays Halima: 2.445333 USDC, status settled, tx D6YxMDVBjDT8aMkS1Sq41oJyrDYWgSPCjvTk9wzT8gCa
 
-## Simulated Household 4, Harbour View
+## Agent test household 4, Harbour View
 
 Household id: 3e73647b-8254-438b-881a-ec3508e651d5
 Members: Ngozi, Emeka, Yetunde
 Memories on Walrus: 38
 
-Simulated day 1: 6 purchases, 4 accepted without correction, acceptance rate 67%
-Simulated day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%
+Day 1: 6 purchases, 4 accepted without correction, acceptance rate 67%
+Day 2: 6 purchases, 6 accepted without correction, acceptance rate 100%
 
 Blob ids:
 - acceptance: 8_BdJzA073k_gF-JdKJWFWxEGXUwEC_jhrWXJlQo5a0
@@ -212,7 +215,7 @@ Settlements:
 - Emeka pays Ngozi: 2.95544 USDC, status settled, tx 7gZaEVwn47Vru4r43UuqXBTs7UQyE9eraa1ifAtbnGo
 - Yetunde pays Ngozi: 0.073467 USDC, status settled, tx CnLXhWoSyTwBDWfnhYoWNpVSU5TLtoj7bDMB3X64MZkV
 
-Total memories written across simulated households: 150
+Total memories written across agent test households: 150
 
 ## Refund
 
@@ -224,7 +227,7 @@ settlements were detected, everything was swept back to the user's wallet
 10.554859 USDC and 0.654296 SUI, verified in the wallet's on chain balances.
 The only true costs were the swap fee and the gas burned by the transfers.
 
-## Bugs this simulation found and fixed in the real app
+## Bugs this agent test programme found and fixed in the real app
 
 1. Memory listing could silently miss records (single semantic recall).
    Fixed with a per kind recall sweep at a wide distance.

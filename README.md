@@ -124,12 +124,18 @@ See the in-app `/limits` page.
 - `docs/x-post.md` — launch post draft
 - `docs/submission-checklist.md` — final submission checklist with evidence links
 
-## Simulated households
+## Agent test households
 
-Four households in the live app are clearly labelled **Simulated** (badge in the app,
-"Simulated Household" in the name). They are driven by the harness in `sim/`:
-agent members with hidden split rules log realistic purchases through the public
-API, then accept or correct each proposal. Proposals come only from Walrus Memory
-recall, so the acceptance rates in `sim/REPORT.md` are measured, never scripted.
-Simulated data is reported separately and is never merged with real households.
-Settlement tests for simulated households use throwaway wallets with tiny amounts.
+Four households in the live app are agent test households, clearly marked with an
+"Agent test household" badge in the app and in their names. They are driven by the
+harness in `sim/`: automated agents played household members, with hidden split
+rules, logging realistic purchases through the public API, then accepting or
+correcting each proposal. Proposals come only from Walrus Memory recall, so the
+acceptance rates in `sim/REPORT.md` are measured, never scripted.
+Agent test data is reported separately and is never merged with real households,
+in the report or in any chart, and the provenance marker stays on every household
+and every record.
+Every settlement in the agent test households was a real USDC transfer on Sui
+mainnet detected live through Tatum, using throwaway wallets with tiny amounts.
+Real households, meaning households where a person logged purchases themselves,
+are counted separately: 0 so far.

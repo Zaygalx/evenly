@@ -446,11 +446,12 @@ async function settleSend() {
 async function report() {
   const state = loadState();
   const lines: string[] = [];
-  lines.push("# Evenly simulation report");
+  lines.push("# Evenly agent test report");
   lines.push("");
-  lines.push("Simulated data only. These four households are labelled Simulated in the app,");
-  lines.push("and nothing here is merged with any real household. Every proposal the agents");
-  lines.push("judged came from the app, which builds proposals only from Walrus Memory recall.");
+  lines.push("Agent test data only. Automated agents played household members in these households,");
+  lines.push("and every settlement was a real USDC transfer on Sui mainnet detected live through Tatum.");
+  lines.push("Nothing here is merged with any real household. Every proposal the agents judged");
+  lines.push("came from the app, which builds proposals only from Walrus Memory recall.");
   lines.push("");
   let totalMemories = 0;
   for (const hh of state.households) {
@@ -469,7 +470,7 @@ async function report() {
     for (const d of days) {
       const dayActions = hhActions.filter((a) => a.day === d);
       const accepted = dayActions.filter((a) => a.action === "accept").length;
-      lines.push(`Simulated day ${d + 1}: ${dayActions.length} purchases, ${accepted} accepted without correction, acceptance rate ${dayActions.length ? Math.round((accepted / dayActions.length) * 100) : 0}%`);
+      lines.push(`Day ${d + 1}: ${dayActions.length} purchases, ${accepted} accepted without correction, acceptance rate ${dayActions.length ? Math.round((accepted / dayActions.length) * 100) : 0}%`);
     }
     lines.push("");
     lines.push("Blob ids:");
@@ -483,9 +484,9 @@ async function report() {
     }
     void data;
   }
-  lines.push(`Total memories written across simulated households: ${totalMemories}`);
+  lines.push(`Total memories written across agent test households: ${totalMemories}`);
   writeFileSync(join(process.cwd(), "sim", "REPORT.md"), lines.join("\n") + "\n");
-  console.log(`report written: ${totalMemories} memories across ${state.households.length} simulated households`);
+  console.log(`report written: ${totalMemories} memories across ${state.households.length} agent test households`);
 }
 
 async function main() {

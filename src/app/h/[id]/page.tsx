@@ -304,7 +304,7 @@ export default function HouseholdPage() {
       <header className="topbar">
         <a href="/" aria-label="Evenly home"><Logo /></a>
         <span className="hh-name">{household.name}</span>
-        {household.name.toLowerCase().includes("simulated") && <span className="tag amber">Simulated</span>}
+        {(household.name.toLowerCase().includes("simulated") || household.name.toLowerCase().includes("agent test")) && <span className="tag amber">Agent test household</span>}
         <span className="avatars" aria-label={`${activeMembers.length} members`}>
           {activeMembers.slice(0, 5).map((m) => (
             <span key={m.id} className="avatar" style={{ background: avatarColor(m.name) }} title={m.name}>{initials(m.name)}</span>
@@ -313,7 +313,7 @@ export default function HouseholdPage() {
         <span className="topbar-spacer" />
         <span className={`pill ${data.memoryMode === "walrus" ? "" : "sim"}`}>
           <span className="dot" />
-          {data.memoryMode === "walrus" ? "Walrus Memory (Mainnet)" : "Simulated memory"}
+          {data.memoryMode === "walrus" ? "Walrus Memory (Mainnet)" : "Demo memory"}
         </span>
         <button
           className="switch"
