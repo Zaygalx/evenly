@@ -3,7 +3,8 @@ import { addExpense, getHousehold, getMembers } from "@/lib/store";
 import { parseExpenseLine } from "@/lib/parser";
 import { recallRecords, rememberRecord } from "@/lib/memory/client";
 import { serializeMemory, type MemoryRecord } from "@/lib/memory/serialize";
-import { proposeSplit } from "@/lib/splitEngine";
+import { proposeSplit, sharesToWeights } from "@/lib/splitEngine";
+import { weightsToString } from "@/lib/memory/serialize";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -75,6 +76,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       category: parsed.category,
       amountMinor: String(parsed.amountMinor),
       payer: payer?.name ?? "",
+      payerId: parsed.paidByMemberId,
+      weights: weightsToString(sharesToWeights(proposal.shares, members)),
+      createdAt: expense.createdAt,
       raw: text,
     },
   });

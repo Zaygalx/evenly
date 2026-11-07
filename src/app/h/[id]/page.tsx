@@ -6,6 +6,7 @@ import type { Balance, DecisionEvent, Expense, Household, Member, Settlement } f
 import { formatMinor } from "@/lib/money";
 import { explorerLinkForBlob, explorerLinkForTx } from "@/lib/explorer";
 import { formatUsdc } from "@/lib/settlement";
+import { learningByWeek } from "@/lib/learning";
 
 export interface HouseholdData {
   household: Household;
@@ -36,6 +37,8 @@ export default function HouseholdPage() {
   const [rateInput, setRateInput] = useState("");
   const [settleMsg, setSettleMsg] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const [delegateOnce, setDelegateOnce] = useState<{ memberId: string; privateKey: string; note: string } | null>(null);
+  const [ownershipMsg, setOwnershipMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -141,6 +144,30 @@ export default function HouseholdPage() {
     } finally {
       setChecking(false);
     }
+  }
+
+  async function generateDelegate(member: Member) {
+    setOwnershipMsg(null);
+    const res = await fetch(`/api/households/${id}/members/${member.id}/delegate`, { method: "POST" });
+    const json = await res.json();
+    if (!res.ok) { setOwnershipMsg(json.error ?? "Could not generate a delegate key."); return; }
+    setDelegateOnce({ memberId: member.id, privateKey: json.privateKeyOnce, note: json.nextStep });
+    await load();
+  }
+
+  async function activateDelegate(member: Member) {
+    await fetch(`/api/households/${id}/members/${member.id}/delegate`, { method: "PATCH" });
+    setOwnershipMsg("Marked active. (The owner still has to add the public key on-chain in the Walrus Memory account — this toggle records that it was done.)");
+    await load();
+  }
+
+  async function revokeMemberUi(member: Member) {
+    setOwnershipMsg(null);
+    const res = await fetch(`/api/households/${id}/members/${member.id}/revoke`, { method: "POST" });
+    const json = await res.json();
+    if (!res.ok) { setOwnershipMsg(json.error ?? "Could not revoke that member."); return; }
+    setOwnershipMsg(json.note);
+    await load();
   }
 
   async function toggleMemory(enabled: boolean) {
@@ -375,15 +402,71 @@ export default function HouseholdPage() {
         )}
       </section>
 
-      <section className="card" aria-label="Members and invite">
-        <h2>Members</h2>
+      {(() => {
+        const weeks = learningByWeek(data.decisions);
+        return (
+          <section className="card" aria-label="Learning chart">
+            <h2>Is Evenly learning?</h2>
+            {weeks.length === 0 ? (
+              <p className="muted">No decisions yet. Accept or correct a proposed split and this chart starts — it is computed only from your real decisions, never hardcoded.</p>
+            ) : (
+              <ul className="clean">
+                {weeks.map((w) => (
+                  <li key={w.week}>
+                    <div className="row">
+                      <span>{w.week}</span>
+                      <span className="amount">{w.unedited}/{w.total} accepted without an edit{w.pctUnedited !== null ? ` — ${Math.round(w.pctUnedited * 100)}%` : ""}</span>
+                    </div>
+                    <div style={{ background: "#e8e4db", borderRadius: 6, height: 10, marginTop: 6 }} role="img" aria-label={`${Math.round((w.pctUnedited ?? 0) * 100)} percent accepted without an edit in ${w.week}`}>
+                      <div style={{ background: "var(--accent)", borderRadius: 6, height: 10, width: `${Math.round((w.pctUnedited ?? 0) * 100)}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })()}
+
+      <section className="card" aria-label="Members, ownership and invite">
+        <h2>Members & ownership</h2>
+        <p className="muted small">
+          Every member can hold a delegate key on the household's Walrus Memory account (max 20 keys).
+          The account owner adds public keys on-chain; revoking a member stops their memory access —
+          with an honest ~30 second lag from verification caching, shown live below.
+        </p>
+        {ownershipMsg && <div className="notice info" role="status">{ownershipMsg}</div>}
+        {delegateOnce && (
+          <div className="notice warn" role="alert">
+            <strong>Delegate private key for {memberNameById.get(delegateOnce.memberId)} — shown ONCE, Evenly does not store it:</strong>
+            <div className="mono" style={{ margin: "6px 0" }}>{delegateOnce.privateKey}</div>
+            {delegateOnce.note} Save the key somewhere safe now; this box disappears on reload.
+          </div>
+        )}
         <ul className="clean">
-          {members.map((m) => (
-            <li key={m.id}>
-              <div className="row"><span>{m.name}{m.revokedAt ? " (removed)" : ""}</span></div>
-              <div className="mono muted">{m.suiAddress}</div>
-            </li>
-          ))}
+          {members.map((m) => {
+            const revoking = m.delegate?.status === "revoking" && m.delegate.revokedAt;
+            const lagLeft = revoking ? Math.max(0, 30 - Math.floor((Date.now() - new Date(m.delegate!.revokedAt as string).getTime()) / 1000)) : 0;
+            const shownDelegateStatus = revoking && lagLeft === 0 ? "revoked" : m.delegate?.status;
+            return (
+              <li key={m.id}>
+                <div className="row">
+                  <span>{m.name}{m.revokedAt ? " (removed)" : ""}</span>
+                  {m.delegate && <span className="tag">delegate: {shownDelegateStatus}</span>}
+                </div>
+                <div className="mono muted">{m.suiAddress}</div>
+                {m.delegate && <div className="mono muted small">delegate key: {m.delegate.suiAddress}</div>}
+                {revoking && lagLeft > 0 && <div className="notice warn small">Revoking… memory access can lag ~30s (verification caching). ~{lagLeft}s remaining. Reload to re-check.</div>}
+                {!m.revokedAt && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                    {!m.delegate && <button className="secondary" onClick={() => void generateDelegate(m)}>Generate delegate key</button>}
+                    {m.delegate?.status === "generated" && <button className="secondary" onClick={() => void activateDelegate(m)}>Owner added it — mark active</button>}
+                    <button className="secondary" onClick={() => void revokeMemberUi(m)}>Revoke member</button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <label htmlFor="invite">Invite link — share it with your household</label>
         <input id="invite" readOnly value={inviteUrl} onFocus={(e) => e.target.select()} />

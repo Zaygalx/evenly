@@ -1,3 +1,15 @@
+export type DelegateStatus = "generated" | "active" | "revoking" | "revoked";
+
+export interface MemberDelegate {
+  /** Ed25519 public key (hex) of the member's Walrus Memory delegate key. */
+  publicKey: string;
+  /** Sui address derived from the delegate key. */
+  suiAddress: string;
+  status: DelegateStatus;
+  generatedAt: string;
+  revokedAt?: string;
+}
+
 export interface Member {
   id: string;
   householdId: string;
@@ -7,6 +19,8 @@ export interface Member {
   joinedAt: string;
   /** Set when the member's memory delegate access has been revoked (Phase 4). */
   revokedAt?: string;
+  /** Walrus Memory delegate key registered for this member (Phase 4). */
+  delegate?: MemberDelegate;
 }
 
 export interface Household {

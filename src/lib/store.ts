@@ -226,8 +226,58 @@ export function markSettlementSettled(id: string, digest: string): Settlement | 
 export function revokeMember(memberId: string): Member | undefined {
   const member = getStore().members.get(memberId);
   if (!member) return undefined;
-  if (!member.revokedAt) member.revokedAt = new Date().toISOString();
+  if (!member.revokedAt) {
+    member.revokedAt = new Date().toISOString();
+    if (member.delegate && member.delegate.status !== "revoked") {
+      member.delegate = { ...member.delegate, status: "revoking", revokedAt: member.revokedAt };
+    }
+  }
   return member;
+}
+
+export function getMember(memberId: string): Member | undefined {
+  return getStore().members.get(memberId);
+}
+
+export function setMemberDelegate(memberId: string, delegate: Member["delegate"]): Member | undefined {
+  const member = getStore().members.get(memberId);
+  if (!member) return undefined;
+  member.delegate = delegate;
+  return member;
+}
+
+/* --------------------- Rebuild helpers (restart proof) --------------------- */
+
+export function insertHousehold(household: Household): void {
+  getStore().households.set(household.id, household);
+}
+
+export function insertMember(member: Member): void {
+  getStore().members.set(member.id, member);
+}
+
+export function insertExpense(expense: Expense): void {
+  getStore().expenses.set(expense.id, expense);
+}
+
+export function insertSettlement(settlement: Settlement): void {
+  getStore().settlements.set(settlement.id, settlement);
+}
+
+export function allHouseholdIds(): string[] {
+  return [...getStore().households.keys()];
+}
+
+/** Delegate revocation lag: Walrus verification caching can delay removal ~30s. */
+export const DELEGATE_REVOKE_LAG_MS = 30_000;
+
+export function effectiveDelegateStatus(member: Member): string | undefined {
+  if (!member.delegate) return undefined;
+  if (member.delegate.status === "revoking" && member.delegate.revokedAt) {
+    const elapsed = Date.now() - new Date(member.delegate.revokedAt).getTime();
+    if (elapsed >= DELEGATE_REVOKE_LAG_MS) return "revoked";
+  }
+  return member.delegate.status;
 }
 
 export function computeBalances(householdId: string): Balance[] {

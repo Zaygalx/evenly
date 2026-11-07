@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const { household, creator } = createHousehold(name, (body.currency ?? "NGN").toUpperCase(), creatorName, creatorSuiAddress);
   // Write-through to memory: the household and its first member become
   // memories immediately, so a restart can rebuild from memory alone.
-  void rememberRecord({ kind: "household", householdId: household.id, fields: { name: household.name, currency: household.currency } });
+  void rememberRecord({ kind: "household", householdId: household.id, fields: { name: household.name, currency: household.currency, invite: household.inviteToken, createdAt: household.createdAt } });
   void rememberRecord({ kind: "member", householdId: household.id, fields: { name: creator.name, sui: creator.suiAddress, member: creator.id } });
   return NextResponse.json({ household, member: creator }, { status: 201 });
 }
